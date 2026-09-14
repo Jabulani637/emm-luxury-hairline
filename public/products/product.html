@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product — Emm Luxury Hairline</title>
+    <link rel="icon" href="/assets/Emm_Luxury_Hairline.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <!-- Google font and Storefront Web Components -->
+    <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
+    <script type="module" src="https://cdn.shopify.com/storefront/web-components.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header id="main-header">
+        <div class="announcement-bar">
+            <p>FREE SHIPPING ON ORDERS OVER $75 · 30-DAY RETURNS · PREMIUM HUMAN HAIR</p>
+        </div>
+        <div class="header-content">
+            <a href="/" class="logo">
+                <img src="/assets/Emm_Luxury_Hairline.svg" alt="Emm_Luxury_Hairline" width="40" height="40">
+                <span>Emm Luxury Hairline</span>
+            </a>
+            <!-- Shopify integration: include the data-driven snippet in your theme:
+                 {% include 'header-nav' %}
+                 For local preview we provide a static fallback below. -->
+            <nav class="main-nav" role="navigation" aria-label="Main navigation">
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="/" class="nav-link">Home</a></li>
+                    <li class="nav-item has-dropdown">
+                        <a href="/collections/all" class="nav-link" aria-haspopup="true" aria-expanded="false">Collection</a>
+                        <div class="dropdown" role="menu" aria-hidden="true">
+                            <ul class="dropdown-list">
+                                <li class="dropdown-item"><a href="/collections/all" class="dropdown-link">Product Catalogue</a></li>
+                                <li class="dropdown-item"><a href="/collections/new-arrivals" class="dropdown-link">New Arrival</a></li>
+                                <li class="dropdown-item"><a href="/collections/raw-hair" class="dropdown-link">Raw Hair</a></li>
+                                <li class="dropdown-item"><a href="/collections/ready-to-ship" class="dropdown-link">Ready to Ship</a></li>
+                                <li class="dropdown-item"><a href="/collections/melted-collection" class="dropdown-link">The Melted Collection</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="nav-item"><a href="/pages/contact" class="nav-link">Contact</a></li>
+                </ul>
+            </nav>
+            <div class="header-actions">
+                <button class="search-btn" aria-label="Search">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </button>
+                <a href="/account" class="account-link" aria-label="Account">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </a>
+                <button class="cart-btn" aria-label="Shopping Cart">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="9" cy="21" r="1"></circle>
+                        <circle cx="20" cy="21" r="1"></circle>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                    <span id="cart-count">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+      <!-- Dynamic shopify-store initialization -->
+      <script>
+        (async function(){
+          try{
+            const res = await fetch('/api/config');
+            const cfg = await res.json();
+            const storeDomain = cfg.storeDomain;
+            const publicToken = cfg.publicAccessToken;
+            if (!document.querySelector('shopify-store')){
+              const el = document.createElement('shopify-store');
+              el.setAttribute('id','store');
+              el.setAttribute('store-domain', `https://${storeDomain}`);
+              if (publicToken) el.setAttribute('public-access-token', publicToken);
+              document.body.insertBefore(el, document.body.firstChild);
+            }
+          }catch(e){ console.error('failed to init shopify-store', e); }
+        })();
+      </script>
+
+      <!-- Product layout (Storefront Web Components) -->
+      <div class="product-layout">
+        <div class="product-card">
+          <!-- Set product you want to display: uses handle query param if present, fallback to 'hoodie' -->
+          <script>
+            // read handle from ?handle= or use default
+            const urlParams = new URLSearchParams(window.location.search);
+            const productHandle = urlParams.get('handle') || 'hoodie';
+          </script>
+          <shopify-context type="product" handle="hoodie" id="product-context-template" style="display:none">
+            <template></template>
+          </shopify-context>
+          <!-- We'll create a runtime context element bound to the handle -->
+          <div id="product-wc-root"></div>
+          <script>
+            (function(){
+              // Create a context element for the handle
+              const handle = new URLSearchParams(window.location.search).get('handle') || 'hoodie';
+              const ctx = document.createElement('shopify-context');
+              ctx.setAttribute('type','product');
+              ctx.setAttribute('handle', handle);
+              ctx.innerHTML = `
+                <template>
+                  ${`<div class=\"product-card__container\">`}
+                    <div class=\"product-card__media\">` +
+                      `<div class=\"product-card__image-slider\">` +
+                        `<div class=\"product-card__image-grid\" id=\"product-card__image-grid\">` +
+                          `<shopify-list-context type=\"image\" query=\"product.selectedOrFirstAvailableVariant.product.images\" first=\"3\">` +
+                            `<template><shopify-media layout=\"fixed\" width=\"420\" height=\"420\" query=\"image\"></shopify-media></template>` +
+                          `</shopify-list-context>` +
+                        `</div>` +
+                      `</div>` +
+                      `<div class=\"product-card__images\">` +
+                        `<shopify-list-context type=\"image\" onclick=\"updateSlider(event)\" query=\"product.selectedOrFirstAvailableVariant.product.images\" first=\"3\">` +
+                          `<template>` +
+                            `<div class=\"product-card__image\">` +
+                              `<shopify-media class=\"product-card__image-small\" width=\"130\" height=\"130\" query=\"image\"></shopify-media>` +
+                            `</div>` +
+                          `</template>` +
+                        `</shopify-list-context>` +
+                      `</div>` +
+                    `</div>` +
+                    `<div class=\"product-card__details\">` +
+                      `<div class=\"product-card__info\">` +
+                        `<h1 class=\"product-card__title\"><shopify-data query=\"product.title\"></shopify-data></h1>` +
+                        `<div class=\"product-card__price\"><span><shopify-money query=\"product.selectedOrFirstAvailableVariant.price\"></shopify-money><shopify-money class=\"product-card__compare-price\" query=\"product.selectedOrFirstAvailableVariant.compareAtPrice\"></shopify-money></span></div>` +
+                      `</div>` +
+                      `<shopify-variant-selector></shopify-variant-selector>` +
+                      `<div class=\"product-card__buttons\">` +
+                        `<div class=\"product-card__add-to-cart\">` +
+                          `<div class=\"product-card__incrementor\">` +
+                            `<button class=\"decrease\" onclick=\"decreaseValue();\">-</button>` +
+                            `<span class=\"product-card__count\" id=\"product-card__count\">1</span>` +
+                            `<button class=\"increase\" onclick=\"increaseValue();\">+</button>` +
+                          `</div>` +
+                          `<button class=\"product-card__add-button\" onclick=\"addToCart();\" shopify-attr--disabled=\"!product.selectedOrFirstAvailableVariant.availableForSale\">` +
+                            `<shopify-money query=\"product.selectedOrFirstAvailableVariant.price\"></shopify-money> · Add to cart` +
+                          `</button>` +
+                        `</div>` +
+                        `<button class=\"product-card__buy-button\" onclick=\"document.querySelector('shopify-store')?.buyNow(event)\" shopify-attr--disabled=\"!product.selectedOrFirstAvailableVariant.availableForSale\">Buy it now</button>` +
+                      `</div>` +
+                    `</div>` +
+                  `</div>` +
+                </template>`;
+              document.getElementById('product-wc-root').appendChild(ctx);
+            })();
+          </script>
+        </div>
+      </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="logo">
+                    <img src="/assets/Emm_Luxury_Hairline.svg" alt="Emm_Luxury_Hairline" width="44" height="44">
+                    <span>Emm Luxury Hairline</span>
+                </div>
+                <p>Premium human hair and lace-front wigs crafted for comfort, confidence, and a flawless natural look.</p>
+            </div>
+            <div class="footer-links">
+                <h3>Shop</h3>
+                <a href="/collections/new-arrivals">New Arrivals</a>
+                <a href="/collections/melted-collection">The Melted Collection</a>
+                <a href="/collections/ready-to-ship">Ready to Ship</a>
+                <a href="/collections/raw-hair">Raw Hair (Exclusive)</a>
+                <a href="/collections/virgin-hair">Virgin Hair (Premium)</a>
+            </div>
+            <div class="footer-links">
+                <h3>Support</h3>
+                <a href="/pages/contact">Contact Us</a>
+                <a href="/pages/shipping-returns">Shipping & Returns</a>
+                <a href="/pages/size-guide">Size Guide</a>
+                <a href="/pages/faqs">FAQs</a>
+                <a href="/pages/wig-care">Wig Care Tips</a>
+            </div>
+            <div class="footer-links">
+                <h3>Company</h3>
+                <a href="/pages/about">About Us</a>
+                <a href="/pages/reviews">Reviews</a>
+                <a href="/pages/careers">Careers</a>
+                <a href="/pages/affiliate">Affiliate Program</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Emm Luxury Hairline. All rights reserved.</p>
+            <div class="payment-and-social">
+                <div class="payment-icons" aria-label="Accepted payment methods">
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#visa"></use></svg>
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#mastercard"></use></svg>
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#amex"></use></svg>
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#paypal"></use></svg>
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#applepay"></use></svg>
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#googlepay"></use></svg>
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#shop"></use></svg>
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#unionpay"></use></svg>
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#klarna"></use></svg>
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#maestro"></use></svg>
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#diners"></use></svg>
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#discover"></use></svg>
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#webmoney"></use></svg>
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#bancontact"></use></svg>
+                </div>
+                <div class="social-links">
+                    <a href="#">Instagram</a>
+                    <a href="#">TikTok</a>
+                    <a href="#">Pinterest</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cart Drawer -->
+    <div id="cart-drawer" class="cart-drawer">
+        <div class="cart-overlay"></div>
+        <div class="cart-content">
+            <div class="cart-header">
+                <h2>Your Bag</h2>
+                <button class="close-cart">×</button>
+            </div>
+            <div class="cart-items" id="cart-items">
+                <p class="empty-cart">Your bag is empty</p>
+            </div>
+            <div class="cart-footer">
+                <div class="cart-total">
+                    <span>Total</span>
+                    <span id="cart-total">$0.00</span>
+                </div>
+                <button class="btn btn-primary checkout-btn">Checkout</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/cart.js"></script>
+    <script src="/js/product.js"></script>
+    <script src="/js/header-nav.js"></script>
+    <script src="/js/nav.js"></script>
+</body>
+</html>

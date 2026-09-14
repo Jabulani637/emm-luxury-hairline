@@ -1,0 +1,265 @@
+/* Global Styles and Variables */
+:root {
+    --burgundy: #7A2B3F;
+    --burgundy-dark: #4A1A28;
+    --blush: #F8E8E6;
+    --blush-light: #FCF5F3;
+    --gold: #D4A854;
+    --cream: #FDF8F4;
+    --ink: #1A1214;
+    --ink-muted: #6B5E5E;
+    --border-subtle: #E5D5D3;
+    --white: #FFFFFF;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--cream);
+    color: var(--ink);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.2s;
+}
+
+button {
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Layout */
+.container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+@media (min-width: 1024px) {
+    .container {
+        padding: 0 64px;
+    }
+}
+
+/* Header */
+header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--white);
+}
+
+.announcement-bar {
+    background: var(--burgundy-dark);
+    padding: 10px;
+    text-align: center;
+}
+
+.announcement-bar p {
+    color: var(--white);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: Georgia, serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--burgundy);
+}
+
+.main-nav {
+    display: none;
+    gap: 40px;
+}
+
+@media (min-width: 1024px) {
+    .main-nav {
+        display: flex;
+    }
+}
+
+.main-nav a {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+}
+
+.main-nav a:hover {
+    color: var(--burgundy);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.search-btn,
+.account-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    color: var(--burgundy);
+    transition: color 0.2s;
+}
+
+.search-btn:hover,
+.account-link:hover {
+    color: var(--burgundy-dark);
+}
+
+.cart-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
+    color: var(--burgundy);
+    transition: color 0.2s;
+}
+
+.cart-btn:hover {
+    color: var(--burgundy-dark);
+}
+
+.cart-btn #cart-count {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Footer */
+footer {
+    background: var(--burgundy-dark);
+    color: var(--white);
+    padding: 64px 32px 40px;
+}
+
+.footer-content {
+    max-width: 1440px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    justify-content: space-between;
+}
+
+.footer-brand {
+    max-width: 280px;
+}
+
+.footer-brand .logo {
+    color: var(--white);
+    margin-bottom: 12px;
+}
+
+.footer-brand p {
+    font-size: 14px;
+    color: var(--blush);
+    line-height: 1.6;
+}
+
+.footer-links {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.footer-links h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.footer-links a {
+    font-size: 14px;
+    color: var(--blush);
+}
+
+.footer-links a:hover {
+    color: var(--white);
+}
+
+.footer-bottom {
+    max-width: 1440px;
+    margin: 56px auto 0;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.footer-bottom p {
+    font-size: 12px;
+    color: var(--blush);
+}
+
+.social-links {
+    display: flex;
+    gap: 20px;
+}
+
+.social-links a {
+    font-size: 12px;
+    color: var(--white);
+}
+
+.social-links a:hover {
+    color: var(--blush);
+}
+
+/* Loading State */
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--ink-muted);
+    font-size: 14px;
+}
+
+/* Sections */
+section {
+    padding: 80px 32px;
+}
+
+@media (min-width: 1024px) {
+    section {
+        padding: 96px 64px;
+    }
+}
