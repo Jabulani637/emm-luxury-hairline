@@ -1845,3 +1845,231 @@ textarea.form-input {
     border: 1px dashed rgba(91, 46, 28, 0.25);
     margin-bottom: 20px;
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Search Modal
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Full-screen overlay — hidden by default */
+.search-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 80px 16px 24px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.search-modal.is-open {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+/* Dim background */
+.search-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 6, 4, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+/* Floating panel */
+.search-panel {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  background: var(--white);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(10, 6, 4, 0.20);
+  overflow: hidden;
+  transform: translateY(-12px);
+  transition: transform 0.22s ease;
+  max-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+}
+
+.search-modal.is-open .search-panel {
+  transform: translateY(0);
+}
+
+/* ── Input row ──────────────────────────────────────────────────────────── */
+.search-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.search-icon {
+  color: var(--ink-muted);
+  flex-shrink: 0;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 17px;
+  font-family: inherit;
+  color: var(--ink);
+  line-height: 1.4;
+  /* remove browser's built-in "×" clear button */
+}
+.search-input::-webkit-search-cancel-button { display: none; }
+.search-input::placeholder { color: var(--ink-muted); }
+
+.search-close-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--ink-muted);
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+.search-close-btn:hover {
+  background: var(--blush-light);
+  color: var(--ink);
+}
+
+/* ── Status line ────────────────────────────────────────────────────────── */
+.search-status {
+  padding: 10px 20px 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  letter-spacing: 0.3px;
+  min-height: 28px;
+  flex-shrink: 0;
+}
+
+/* ── Results list ───────────────────────────────────────────────────────── */
+.search-results {
+  overflow-y: auto;
+  padding: 8px 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Individual result card */
+.search-result-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 10px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.12s;
+  outline: none;
+}
+
+.search-result-card:hover,
+.search-result-card.is-active {
+  background: var(--blush-light);
+}
+
+/* Thumbnail */
+.search-result-img {
+  width: 56px;
+  height: 68px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--blush-light);
+  flex-shrink: 0;
+}
+
+.search-result-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.search-result-no-img {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--ink-muted);
+}
+
+/* Text block */
+.search-result-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.search-result-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.35;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-result-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-result-price {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--burgundy);
+}
+
+.search-result-badge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #111;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* ── Keyboard shortcut hint shown in search button tooltip ─────────────── */
+.search-btn[title] {
+  position: relative;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .search-modal {
+    padding: 60px 8px 16px;
+    align-items: flex-start;
+  }
+  .search-panel {
+    border-radius: 12px;
+    max-height: calc(100vh - 80px);
+  }
+  .search-input {
+    font-size: 16px; /* prevents iOS zoom */
+  }
+}
