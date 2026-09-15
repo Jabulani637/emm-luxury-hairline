@@ -1,9 +1,26 @@
 const axios = require('axios');
 const crypto = require('crypto');
 
-// Accept either new or older env names for flexibility
 const SHOP = process.env.SHOPIFY_STORE || process.env.SHOPIFY_STORE_DOMAIN;
-const TOKEN = process.env.STOREFRONT_TOKEN || process.env.SHOPIFY_STOREFRONT_TOKEN;
+
+function resolveStorefrontToken() {
+  const candidates = [
+    process.env.STOREFRONT_TOKEN,
+    process.env.SHOPIFY_PUBLIC_ACCESS_TOKEN,
+    process.env.SHOPIFY_STOREFRONT_TOKEN,
+  ];
+  for (const t of candidates) {
+    if (!t) continue;
+    if (t.startsWith('shpat_')) {
+      console.warn('[shopify] Skipping token with shpat_ prefix (Admin API token) — use a Storefront API token instead');
+      continue;
+    }
+    return t;
+  }
+  return null;
+}
+
+const TOKEN = resolveStorefrontToken();
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
 
 if (!SHOP || !TOKEN) {

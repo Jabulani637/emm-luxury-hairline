@@ -1,8 +1,25 @@
 const axios = require('axios');
 
-// Accept either new or older env names for flexibility
-const SHOP = process.env.SHOPIFY_STORE || process.env.SHOPIFY_STORE_DOMAIN; // e.g. your-store.myshopify.com
-const TOKEN = process.env.STOREFRONT_TOKEN || process.env.SHOPIFY_STOREFRONT_TOKEN;
+const SHOP = process.env.SHOPIFY_STORE || process.env.SHOPIFY_STORE_DOMAIN;
+
+function resolveStorefrontToken() {
+  const candidates = [
+    process.env.STOREFRONT_TOKEN,
+    process.env.SHOPIFY_PUBLIC_ACCESS_TOKEN,
+    process.env.SHOPIFY_STOREFRONT_TOKEN,
+  ];
+  for (const t of candidates) {
+    if (!t) continue;
+    if (t.startsWith('shpat_')) {
+      console.warn('[shopify] Skipping token with shpat_ prefix (Admin API token) — use a Storefront API token instead');
+      continue;
+    }
+    return t;
+  }
+  return null;
+}
+
+const TOKEN = resolveStorefrontToken();
 const API_VERSION = process.env.SHOPIFY_STOREFRONT_API_VERSION || '2024-10';
 
 if (!SHOP || !TOKEN) {

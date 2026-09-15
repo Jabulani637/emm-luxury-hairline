@@ -52,8 +52,13 @@ const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
   
-  if (!process.env.SHOPIFY_STORE || !process.env.STOREFRONT_TOKEN) {
-    console.warn('⚠️  Warning: Shopify credentials (SHOPIFY_STORE and STOREFRONT_TOKEN) not configured. Check your .env file.');
+  const shopConfigured = process.env.SHOPIFY_STORE || process.env.SHOPIFY_STORE_DOMAIN;
+  const tokenCandidates = [process.env.STOREFRONT_TOKEN, process.env.SHOPIFY_PUBLIC_ACCESS_TOKEN, process.env.SHOPIFY_STOREFRONT_TOKEN];
+  const tokenConfigured = tokenCandidates.find(t => t && !t.startsWith('shpat_'));
+  if (!shopConfigured || !tokenConfigured) {
+    console.warn('⚠️  Warning: Shopify credentials not configured. Check your .env file for SHOPIFY_STORE_DOMAIN and SHOPIFY_PUBLIC_ACCESS_TOKEN.');
+  } else if (process.env.SHOPIFY_STOREFRONT_TOKEN && process.env.SHOPIFY_STOREFRONT_TOKEN.startsWith('shpat_')) {
+    console.warn('⚠️  Note: SHOPIFY_STOREFRONT_TOKEN has shpat_ prefix (Admin API) — using SHOPIFY_PUBLIC_ACCESS_TOKEN for Storefront API instead.');
   }
 });
 
