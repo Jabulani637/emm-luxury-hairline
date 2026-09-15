@@ -123,9 +123,33 @@ const cartAPI = {
       body: JSON.stringify({ cartId, lines }),
     });
   },
+
+  updateDeliveryAddress: (cartId, address) => {
+    return apiFetch('/cart/delivery-address', {
+      method: 'POST',
+      body: JSON.stringify({ cartId, address }),
+    });
+  },
+
+  selectDeliveryOptions: (cartId, deliveryOptions) => {
+    return apiFetch('/cart/delivery-options', {
+      method: 'POST',
+      body: JSON.stringify({ cartId, deliveryOptions }),
+    });
+  },
+};
+
+/**
+ * Countries API
+ */
+const countriesAPI = {
+  getCountries: () => {
+    return apiFetch('/countries');
+  },
 };
 
 window.__API_BASE__ = API_BASE;
 window.productsAPI = productsAPI;
 window.collectionsAPI = collectionsAPI;
 window.cartAPI = cartAPI;
+window.countriesAPI = countriesAPI;

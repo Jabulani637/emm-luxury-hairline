@@ -21,6 +21,8 @@ app.use('/api/cart', require('./routes/cart'));
 app.use('/webhooks', require('./routes/webhooks'));
 app.use('/api/checkout', require('./routes/checkout'));
 app.use('/api/config', require('./routes/config'));
+app.use('/api/countries', require('./routes/countries'));
+app.use('/api/custom-orders', require('./routes/customOrders'));
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -43,6 +45,10 @@ app.get('/collections/collection.html', (req, res) => {
 
 app.get('/cart.html', (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'cart.html'));
+});
+
+app.get('/pages/custom-order.html', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'pages', 'custom-order.html'));
 });
 
 // Serve static files for all other routes (fallback to index.html)

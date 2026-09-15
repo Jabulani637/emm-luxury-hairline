@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Order — Emm Luxury Hairline</title>
+    <link rel="icon" href="/assets/Emm_Luxury_Hairline.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
+</head>
+<body>
+    <header id="main-header">
+        <div class="announcement-bar">
+            <p>FREE SHIPPING ON ORDERS OVER $75 · 30-DAY RETURNS · PREMIUM HUMAN HAIR</p>
+        </div>
+        <div class="header-content">
+            <a href="/" class="logo">
+                <img src="/assets/Emm_Luxury_Hairline.svg" alt="Emm_Luxury_Hairline" width="40" height="40">
+                <span>Emm Luxury Hairline</span>
+            </a>
+            <nav class="main-nav" role="navigation" aria-label="Main navigation">
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="/" class="nav-link">Home</a></li>
+                    <li class="nav-item has-dropdown">
+                        <a href="/collections/all" class="nav-link" aria-haspopup="true" aria-expanded="false">Collection</a>
+                        <div class="dropdown" role="menu" aria-hidden="true">
+                            <ul class="dropdown-list">
+                                <li class="dropdown-item"><a href="/collections/all" class="dropdown-link">Product Catalogue</a></li>
+                                <li class="dropdown-item"><a href="/collections/new-arrivals" class="dropdown-link">New Arrival</a></li>
+                                <li class="dropdown-item"><a href="/collections/raw-hair" class="dropdown-link">Raw Hair</a></li>
+                                <li class="dropdown-item"><a href="/collections/ready-to-ship" class="dropdown-link">Ready to Ship</a></li>
+                                <li class="dropdown-item"><a href="/collections/melted-collection" class="dropdown-link">The Melted Collection</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="nav-item"><a href="/pages/custom-order.html" class="nav-link active">Custom Order</a></li>
+                </ul>
+            </nav>
+            <div class="header-actions">
+                <a href="/account" class="account-link" aria-label="Account">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </a>
+                <a href="/cart.html" class="cart-btn" aria-label="Shopping Cart">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="9" cy="21" r="1"></circle>
+                        <circle cx="20" cy="21" r="1"></circle>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                    <span id="cart-count">0</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="custom-order-page">
+            <div class="custom-order-hero">
+                <a href="/collections/all" class="back-link">← Back to shop</a>
+                <h1>Request a Custom Order</h1>
+                <p class="page-sub">The style you love is currently sold out, but we'd love to make one just for you. Tell us your preferences and we'll reply with availability and pricing within 24 hours.</p>
+            </div>
+
+            <div class="custom-order-grid">
+                <aside class="custom-order-summary" id="custom-order-summary">
+                    <h2>Product requested</h2>
+                    <div class="summary-product" id="summary-product">
+                        <p class="no-product-selected">Loading order details…</p>
+                    </div>
+                    <div class="summary-notes">
+                        <p><strong>What happens next?</strong></p>
+                        <ol>
+                            <li>We confirm stock availability, customizations, and production lead time.</li>
+                            <li>We email you a final quote and a secure Shopify payment link.</li>
+                            <li>You pay via the link and we start crafting your piece.</li>
+                        </ol>
+                    </div>
+                </aside>
+
+                <form class="custom-order-form" id="custom-order-form" novalidate>
+                    <input type="hidden" name="productHandle" id="f-product-handle">
+                    <input type="hidden" name="productTitle" id="f-product-title">
+                    <input type="hidden" name="variantId" id="f-variant-id">
+                    <input type="hidden" name="variantTitle" id="f-variant-title">
+                    <input type="hidden" name="price" id="f-price">
+                    <input type="hidden" name="currency" id="f-currency">
+
+                    <fieldset class="form-section">
+                        <legend>Your Contact Details</legend>
+
+                        <div class="form-row form-row--two">
+                            <div class="form-group">
+                                <label for="f-name">Full name <span class="req">*</span></label>
+                                <input type="text" id="f-name" name="name" class="form-input" required placeholder="Jane Doe">
+                            </div>
+                            <div class="form-group">
+                                <label for="f-email">Email <span class="req">*</span></label>
+                                <input type="email" id="f-email" name="email" class="form-input" required placeholder="you@example.com">
+                            </div>
+                        </div>
+
+                        <div class="form-row form-row--two">
+                            <div class="form-group">
+                                <label for="f-phone">Phone (optional)</label>
+                                <input type="tel" id="f-phone" name="phone" class="form-input" placeholder="+27 82 000 0000">
+                            </div>
+                            <div class="form-group">
+                                <label for="f-country">Country</label>
+                                <select id="f-country" name="country" class="form-select">
+                                    <option value="">Select country</option>
+                                </select>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="form-section">
+                        <legend>Custom Order Details</legend>
+
+                        <div class="form-row form-row--two">
+                            <div class="form-group">
+                                <label for="f-desired-style">Desired style</label>
+                                <input type="text" id="f-desired-style" name="desiredStyle" class="form-input" placeholder="e.g. Body wave lace frontal">
+                            </div>
+                            <div class="form-group">
+                                <label for="f-quantity">Desired quantity</label>
+                                <input type="number" id="f-quantity" name="quantity" min="1" value="1" class="form-input">
+                            </div>
+                        </div>
+
+                        <div class="form-row form-row--two">
+                            <div class="form-group">
+                                <label for="f-length">Preferred length</label>
+                                <input type="text" id="f-length" name="length" class="form-input" placeholder="e.g. 24 inch, 22 inch">
+                            </div>
+                            <div class="form-group">
+                                <label for="f-color">Preferred color</label>
+                                <input type="text" id="f-color" name="color" class="form-input" placeholder="e.g. Natural black, #1B, Ombre">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="f-message">Additional details (texture, cap size, delivery date, etc.)</label>
+                            <textarea id="f-message" name="message" rows="5" class="form-input" placeholder="Tell us anything we should know about your custom piece."></textarea>
+                        </div>
+                    </fieldset>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-large btn-block" id="submit-order-btn">
+                            Submit Custom Order Request
+                        </button>
+                        <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="logo">
+                    <img src="/assets/Emm_Luxury_Hairline.svg" alt="Emm_Luxury_Hairline" width="44" height="44">
+                    <span>Emm Luxury Hairline</span>
+                </div>
+                <p>Premium human hair and lace-front wigs crafted for comfort, confidence, and a flawless natural look.</p>
+            </div>
+            <div class="footer-links">
+                <h3>Shop</h3>
+                <a href="/collections/new-arrivals">New Arrivals</a>
+                <a href="/collections/melted-collection">The Melted Collection</a>
+                <a href="/collections/ready-to-ship">Ready to Ship</a>
+                <a href="/collections/raw-hair">Raw Hair (Exclusive)</a>
+                <a href="/collections/virgin-hair">Virgin Hair (Premium)</a>
+            </div>
+            <div class="footer-links">
+                <h3>Support</h3>
+                <a href="/pages/custom-order.html">Custom Orders</a>
+                <a href="/pages/shipping-returns">Shipping & Returns</a>
+                <a href="/pages/size-guide">Size Guide</a>
+                <a href="/pages/faqs">FAQs</a>
+                <a href="/pages/wig-care">Wig Care Tips</a>
+            </div>
+            <div class="footer-links">
+                <h3>Company</h3>
+                <a href="/pages/about">About Us</a>
+                <a href="/pages/reviews">Reviews</a>
+                <a href="/pages/careers">Careers</a>
+                <a href="/pages/affiliate">Affiliate Program</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Emm Luxury Hairline. All rights reserved.</p>
+            <div class="payment-and-social">
+                <div class="payment-icons" aria-label="Accepted payment methods">
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#visa"></use></svg>
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#mastercard"></use></svg>
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#paypal"></use></svg>
+                    <svg class="payment-icon"><use href="/assets/sprite.svg#shop"></use></svg>
+                </div>
+                <div class="social-links">
+                    <a href="#">Instagram</a>
+                    <a href="#">TikTok</a>
+                    <a href="#">Pinterest</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <div id="cart-drawer" class="cart-drawer">
+        <div class="cart-overlay"></div>
+        <div class="cart-content">
+            <div class="cart-header">
+                <h2>Your Bag</h2>
+                <button class="close-cart">×</button>
+            </div>
+            <div class="cart-items" id="cart-items">
+                <p class="empty-cart">Your bag is empty</p>
+            </div>
+            <div class="cart-footer">
+                <div class="cart-total">
+                    <span>Total</span>
+                    <span id="cart-total">$0.00</span>
+                </div>
+                <button class="btn btn-primary checkout-btn">Checkout</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+      window.APP_CONFIG = {
+        API_BASE_URL: 'https://emm-luxury-hairline.onrender.com/api'
+      };
+    </script>
+    <script src="/js/api.js"></script>
+    <script src="/js/cart.js"></script>
+    <script src="/js/custom-order.js"></script>
+    <script src="/js/header-nav.js"></script>
+    <script src="/js/nav.js"></script>
+</body>
+</html>

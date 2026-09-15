@@ -57,8 +57,8 @@ function renderProduct(product) {
     </div>
     <div class="product-info">
       <h1>${product.title}</h1>
-      <div class="product-price">
-        <span>${formatPrice(price.amount, price.currencyCode)}</span>
+      <div class="product-price" id="product-price-display">
+        <span class="current-price">${formatPrice(price.amount, price.currencyCode)}</span>
         ${compareAtPriceHtml}
       </div>
       <p class="product-description">${product.description || ''}</p>
@@ -79,14 +79,26 @@ function renderProduct(product) {
         ${optionsHtml}
       </div>
 
-      <button class="btn btn-primary add-to-cart" id="add-to-cart">Add to Bag</button>
-      
-      ${!product.availableForSale ? '<p class="sold-out">This product is currently sold out.</p>' : ''}
+      <div class="product-quantity-row">
+        <div class="product-incrementor">
+          <button id="qty-decrease" type="button" class="qty-btn">−</button>
+          <input id="qty-input" type="number" min="1" value="1" aria-label="Quantity">
+          <button id="qty-increase" type="button" class="qty-btn">+</button>
+        </div>
+      </div>
+
+      <div id="product-actions" class="product-actions">
+        <button class="btn btn-primary add-to-cart" id="add-to-cart">Add to Cart</button>
+        <button class="btn btn-secondary sold-out-btn" id="sold-out-btn" style="display:none;">
+          Sold Out — Custom Order
+        </button>
+      </div>
+      <p id="product-availability-note" class="product-availability-note"></p>
     </div>
   `;
 
-  // Setup variant selection logic
   setupVariantSelection(product);
+  setupQuantityControls();
 }
 
 function createVariantSelector(option, variants) {
@@ -109,6 +121,8 @@ function createVariantSelector(option, variants) {
 function setupVariantSelection(product) {
   const variantButtons = document.querySelectorAll('.variant-button');
   const addToCartBtn = document.getElementById('add-to-cart');
+  const soldOutBtn = document.getElementById('sold-out-btn');
+  const availabilityNote = document.getElementById('product-availability-note');
   
   let selectedOptions = {};
   let selectedVariant = null;
@@ -120,11 +134,10 @@ function setupVariantSelection(product) {
     }
   });
 
-  // Find initial variant
   selectedVariant = findVariant(product.variants, selectedOptions);
   updateVariantButtons();
+  updateAvailability();
 
-  // Add click handlers
   variantButtons.forEach(button => {
     button.addEventListener('click', () => {
       const optionName = button.dataset.option;
@@ -134,34 +147,48 @@ function setupVariantSelection(product) {
       selectedVariant = findVariant(product.variants, selectedOptions);
       updateVariantButtons();
       updatePrice();
+      updateAvailability();
     });
   });
 
-  // Add to cart handler
   if (addToCartBtn) {
     addToCartBtn.addEventListener('click', async () => {
       if (!selectedVariant) {
-        alert('Please select a variant');
+        alert('Please select all product options before adding to cart.');
         return;
       }
-
+      if (!isVariantAvailable(selectedVariant)) {
+        goToCustomOrder(product, selectedVariant);
+        return;
+      }
+      const qty = getQuantity();
       try {
         addToCartBtn.disabled = true;
+        const originalText = addToCartBtn.textContent;
         addToCartBtn.textContent = 'Adding...';
         
-        await window.cartManager.addToCart(selectedVariant.id, 1);
+        await window.cartManager.addToCart(selectedVariant.id, qty);
         
-        addToCartBtn.textContent = 'Added!';
+        addToCartBtn.textContent = 'Added ✓';
+        addToCartBtn.classList.add('added');
         setTimeout(() => {
-          addToCartBtn.textContent = 'Add to Bag';
+          addToCartBtn.textContent = originalText;
           addToCartBtn.disabled = false;
-        }, 2000);
+          addToCartBtn.classList.remove('added');
+        }, 1800);
+        openCartDrawerIfAvailable();
       } catch (error) {
         console.error('[Product] Failed to add to cart:', error);
         alert('Failed to add to cart. Please try again.');
-        addToCartBtn.textContent = 'Add to Bag';
+        addToCartBtn.textContent = 'Add to Cart';
         addToCartBtn.disabled = false;
       }
+    });
+  }
+
+  if (soldOutBtn) {
+    soldOutBtn.addEventListener('click', () => {
+      goToCustomOrder(product, selectedVariant);
     });
   }
 
@@ -180,7 +207,7 @@ function setupVariantSelection(product) {
 
   function updatePrice() {
     if (selectedVariant) {
-      const priceEl = document.querySelector('.product-price span:first-child');
+      const priceEl = document.querySelector('#product-price-display .current-price');
       if (priceEl) {
         priceEl.textContent = formatPrice(
           selectedVariant.price.amount, 
@@ -189,6 +216,77 @@ function setupVariantSelection(product) {
       }
     }
   }
+
+  function updateAvailability() {
+    const available = isVariantAvailable(selectedVariant);
+    if (addToCartBtn) addToCartBtn.style.display = available ? '' : 'none';
+    if (soldOutBtn) soldOutBtn.style.display = available ? 'none' : '';
+    if (availabilityNote) {
+      availabilityNote.textContent = available
+        ? ''
+        : 'This specific option is out of stock. Request a custom order below.';
+      availabilityNote.style.display = available ? 'none' : 'block';
+    }
+  }
+}
+
+function setupQuantityControls() {
+  const decreaseBtn = document.getElementById('qty-decrease');
+  const increaseBtn = document.getElementById('qty-increase');
+  const input = document.getElementById('qty-input');
+  if (!input) return;
+
+  if (decreaseBtn) {
+    decreaseBtn.addEventListener('click', () => {
+      const v = Math.max(1, parseInt(input.value || '1', 10) - 1);
+      input.value = String(v);
+    });
+  }
+  if (increaseBtn) {
+    increaseBtn.addEventListener('click', () => {
+      const v = parseInt(input.value || '1', 10) + 1;
+      input.value = String(v);
+    });
+  }
+  input.addEventListener('change', () => {
+    const v = Math.max(1, parseInt(input.value || '1', 10));
+    input.value = String(v);
+  });
+}
+
+function getQuantity() {
+  const input = document.getElementById('qty-input');
+  if (!input) return 1;
+  return Math.max(1, parseInt(input.value || '1', 10));
+}
+
+function isVariantAvailable(variant) {
+  if (!variant) return false;
+  return variant.availableForSale === true;
+}
+
+function goToCustomOrder(product, variant) {
+  const params = new URLSearchParams();
+  params.set('productHandle', product.handle || '');
+  params.set('productTitle', product.title || '');
+  if (variant) {
+    params.set('variantId', variant.id || '');
+    params.set('variantTitle', variant.title || '');
+    const price = variant.price && variant.price.amount ? variant.price.amount : '';
+    const currency = variant.price && variant.price.currencyCode ? variant.price.currencyCode : '';
+    if (price) params.set('price', price);
+    if (currency) params.set('currency', currency);
+  }
+  window.location.href = '/pages/custom-order.html?' + params.toString();
+}
+
+function openCartDrawerIfAvailable() {
+  if (typeof window.openCartDrawer === 'function') {
+    window.openCartDrawer();
+    return;
+  }
+  const drawer = document.getElementById('cart-drawer');
+  if (drawer) drawer.classList.add('open');
 }
 
 function findVariant(variants, selectedOptions) {
