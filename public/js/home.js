@@ -65,11 +65,22 @@ function createProductCard(product) {
     ? `<img src="${image.url}" alt="${image.altText || product.title}" loading="lazy">`
     : '<div class="no-image">No image</div>';
 
+  // NOTE: data-* attribute values must NOT be encodeURIComponent'd — see collection.js for explanation.
+  const safeAttr = (val) => String(val || '').replace(/"/g, '&quot;');
+
   let actionButton;
   if (!hasAnyAvailable) {
-    actionButton = `<button type="button" class="btn btn-block btn-secondary card-soldout-btn" data-handle="${encodeURIComponent(product.handle || '')}" data-title="${encodeURIComponent(product.title || '')}" data-variant-id="${encodeURIComponent(firstAvailable && firstAvailable.id ? firstAvailable.id : '')}" data-variant-title="${encodeURIComponent(firstAvailable && firstAvailable.title ? firstAvailable.title : '')}" data-price="${encodeURIComponent(price && price.amount ? price.amount : '')}" data-currency="${encodeURIComponent(price && price.currencyCode ? price.currencyCode : '')}">Sold Out — Custom Order</button>`;
+    actionButton = `<button type="button" class="btn btn-block btn-secondary card-soldout-btn"
+      data-handle="${safeAttr(product.handle)}"
+      data-title="${safeAttr(product.title)}"
+      data-variant-id="${safeAttr(firstAvailable && firstAvailable.id ? firstAvailable.id : '')}"
+      data-variant-title="${safeAttr(firstAvailable && firstAvailable.title ? firstAvailable.title : '')}"
+      data-price="${safeAttr(price && price.amount ? price.amount : '')}"
+      data-currency="${safeAttr(price && price.currencyCode ? price.currencyCode : '')}">Sold Out — Custom Order</button>`;
   } else if (singleVariant && firstAvailable) {
-    actionButton = `<button type="button" class="btn btn-block btn-primary card-add-btn" data-variant-id="${encodeURIComponent(firstAvailable.id)}" data-handle="${encodeURIComponent(product.handle || '')}">Add to Cart</button>`;
+    actionButton = `<button type="button" class="btn btn-block btn-primary card-add-btn"
+      data-variant-id="${safeAttr(firstAvailable.id)}"
+      data-handle="${safeAttr(product.handle)}">Add to Cart</button>`;
   } else {
     actionButton = `<a href="/products/product.html?handle=${encodeURIComponent(product.handle || '')}" class="btn btn-block btn-primary card-select-options">Select Options</a>`;
   }

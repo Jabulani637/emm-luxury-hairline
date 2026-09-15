@@ -268,17 +268,29 @@
     color: var(--burgundy-dark);
 }
 
+/* ─── Product grid: column-flow (items fill downward per column) ───────────
+   Mobile  (<640px)  → 1 column  : 1 2 3 4 …
+   Tablet  (640-1023): 2 columns : col1=1,2,3 / col2=4,5,6
+   Desktop (≥1024px) : 3 columns : col1=1,2,3 / col2=4,5,6 / col3=7,8,9
+   break-inside on each card prevents a card being split between columns.
+──────────────────────────────────────────────────────────────────────────── */
 .product-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
+    column-count: 1;
+    column-gap: 20px;
     width: 100%;
     max-width: 1440px;
 }
 
+@media (min-width: 640px) {
+    .product-grid {
+        column-count: 2;
+    }
+}
+
 @media (min-width: 1024px) {
     .product-grid {
-        grid-template-columns: repeat(4, 1fr);
+        column-count: 3;
+        column-gap: 24px;
     }
 }
 
@@ -1338,13 +1350,18 @@
 
 /* Product card wrapper used on collection + home to add a button below the card link */
 .product-card-wrapper {
-    display: flex;
-    flex-direction: column;
+    display: inline-block;   /* required for column-count flow */
+    width: 100%;
+    break-inside: avoid;     /* never split a card across columns */
+    -webkit-column-break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 20px;     /* vertical gap between cards (replaces grid gap) */
     background: #fff;
     border-radius: 14px;
     overflow: hidden;
     transition: box-shadow 0.25s ease, transform 0.25s ease;
     border: 1px solid rgba(91, 46, 28, 0.08);
+    vertical-align: top;
 }
 
 .product-card-wrapper:hover {
