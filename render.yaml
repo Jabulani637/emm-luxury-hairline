@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: emm-luxury-hairline
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: SHOPIFY_STORE_DOMAIN
+        sync: false
+      - key: SHOPIFY_PUBLIC_ACCESS_TOKEN
+        sync: false
+      - key: SHOPIFY_STOREFRONT_API_VERSION
+        value: "2025-10"
+      - key: SHOPIFY_STOREFRONT_TOKEN
+        sync: false
+      - key: WEBHOOK_SECRET
+        sync: false
+    healthCheckPath: /api/health

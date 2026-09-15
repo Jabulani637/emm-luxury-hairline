@@ -1,15 +1,18 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
+
+const PROJECT_ROOT = path.join(__dirname, '..');
+const PUBLIC_DIR = path.join(PROJECT_ROOT, 'public');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-// Serve the public folder from the project root (one level up from server/)
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// Serve the public folder from the project root
+app.use(express.static(PUBLIC_DIR));
 
 // API Routes
 app.use('/api/products', require('./routes/products'));
@@ -26,39 +29,44 @@ app.get('/api/health', (req, res) => {
 
 // Test route
 app.get('/test', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/test.html'));
+  res.sendFile(path.join(PUBLIC_DIR, 'test.html'));
 });
 
 // Serve specific HTML pages
 app.get('/products/product.html', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/products/product.html'));
+  res.sendFile(path.join(PUBLIC_DIR, 'products/product.html'));
 });
 
 app.get('/collections/collection.html', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/collections/collection.html'));
+  res.sendFile(path.join(PUBLIC_DIR, 'collections/collection.html'));
 });
 
 app.get('/cart.html', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/cart.html'));
+  res.sendFile(path.join(PUBLIC_DIR, 'cart.html'));
 });
 
 // Serve static files for all other routes (fallback to index.html)
 app.use((req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 
 // Start server
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📁 Project root: ${PROJECT_ROOT}`);
+  console.log(`📂 Public dir:   ${PUBLIC_DIR}`);
+  console.log(`🔍 CWD:          ${process.cwd()}`);
   
   const shopConfigured = process.env.SHOPIFY_STORE || process.env.SHOPIFY_STORE_DOMAIN;
   const tokenCandidates = [process.env.STOREFRONT_TOKEN, process.env.SHOPIFY_PUBLIC_ACCESS_TOKEN, process.env.SHOPIFY_STOREFRONT_TOKEN];
   const tokenConfigured = tokenCandidates.find(t => t && !t.startsWith('shpat_'));
   if (!shopConfigured || !tokenConfigured) {
-    console.warn('⚠️  Warning: Shopify credentials not configured. Check your .env file for SHOPIFY_STORE_DOMAIN and SHOPIFY_PUBLIC_ACCESS_TOKEN.');
+    console.warn('⚠️  Warning: Shopify credentials not configured. Set SHOPIFY_STORE_DOMAIN and SHOPIFY_PUBLIC_ACCESS_TOKEN environment variables.');
   } else if (process.env.SHOPIFY_STOREFRONT_TOKEN && process.env.SHOPIFY_STOREFRONT_TOKEN.startsWith('shpat_')) {
     console.warn('⚠️  Note: SHOPIFY_STOREFRONT_TOKEN has shpat_ prefix (Admin API) — using SHOPIFY_PUBLIC_ACCESS_TOKEN for Storefront API instead.');
+  } else {
+    console.log(`✅ Shopify store: ${shopConfigured} — Storefront token configured.`);
   }
 });
 
