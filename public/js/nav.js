@@ -36,16 +36,29 @@ function initializeCartDrawer() {
     });
   }
 
-  // Checkout button
+  // Checkout button — clear country lock before redirecting
   const checkoutBtn = cartDrawer.querySelector('.checkout-btn');
   if (checkoutBtn) {
-    checkoutBtn.addEventListener('click', () => {
+    checkoutBtn.addEventListener('click', async () => {
+      const cart = window.cartManager.getCart();
       const checkoutUrl = window.cartManager.getCheckoutUrl();
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl;
-      } else {
+
+      if (!checkoutUrl || !cart) {
         alert('Your cart is empty');
+        return;
       }
+
+      const originalText = checkoutBtn.textContent;
+      checkoutBtn.disabled = true;
+      checkoutBtn.textContent = 'Redirecting…';
+
+      try {
+        await window.cartAPI.clearBuyerIdentity(cart.id);
+      } catch (err) {
+        console.warn('[Cart] Could not clear buyer identity:', err.message);
+      }
+
+      window.location.href = checkoutUrl;
     });
   }
 

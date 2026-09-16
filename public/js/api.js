@@ -137,6 +137,18 @@ const cartAPI = {
       body: JSON.stringify({ cartId, deliveryOptions }),
     });
   },
+
+  /**
+   * Clear the buyer identity country lock from the cart.
+   * Call this just before redirecting to checkoutUrl so Shopify shows
+   * the full country selector instead of locking to the store's base country.
+   */
+  clearBuyerIdentity: (cartId) => {
+    return apiFetch('/cart/buyer-identity', {
+      method: 'POST',
+      body: JSON.stringify({ cartId }),
+    });
+  },
 };
 
 /**

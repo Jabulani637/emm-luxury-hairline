@@ -5,6 +5,7 @@ const { cartLinesAdd } = require('../shopify/mutations/cartLinesAdd');
 const { cartLinesUpdate } = require('../shopify/mutations/cartLinesUpdate');
 const { cartDeliveryAddressUpdate } = require('../shopify/mutations/cartDeliveryAddressUpdate');
 const { cartDeliveryOptionsUpdate } = require('../shopify/mutations/cartDeliveryOptionsUpdate');
+const { cartBuyerIdentityUpdate } = require('../shopify/mutations/cartBuyerIdentityUpdate');
 
 // POST /api/cart/create - Create a new cart
 router.post('/create', async (req, res) => {
@@ -96,6 +97,29 @@ router.post('/delivery-options', async (req, res) => {
     res.json({ cart });
   } catch (error) {
     console.error('[API] Cart delivery options error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/cart/buyer-identity - Clear/set buyer identity (country) on the cart.
+// Call this with an empty body just before redirecting to checkoutUrl so that
+// Shopify does NOT lock the checkout to the store's base country (GB).
+// The customer can then freely pick their own country on the checkout page.
+router.post('/buyer-identity', async (req, res) => {
+  try {
+    const { cartId, countryCode } = req.body;
+
+    if (!cartId) {
+      return res.status(400).json({ error: 'cartId is required' });
+    }
+
+    // Pass countryCode if provided, otherwise send an empty identity object
+    // which tells Shopify to stop enforcing a specific country at checkout.
+    const identity = countryCode ? { countryCode } : {};
+    const cart = await cartBuyerIdentityUpdate(cartId, identity);
+    res.json({ cart });
+  } catch (error) {
+    console.error('[API] Cart buyer identity error:', error);
     res.status(500).json({ error: error.message });
   }
 });

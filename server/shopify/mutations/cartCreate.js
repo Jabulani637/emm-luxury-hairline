@@ -53,7 +53,9 @@ const CART_CREATE_MUTATION = `
 `;
 
 /**
- * Create a new cart with a line item
+ * Create a new cart with a line item.
+ * buyerIdentity is intentionally left empty so Shopify's hosted checkout
+ * allows the customer to freely choose their own country and address.
  */
 async function cartCreate(variantId, quantity = 1) {
   const data = await shopifyFetch({
@@ -66,6 +68,9 @@ async function cartCreate(variantId, quantity = 1) {
             quantity,
           },
         ],
+        // No buyerIdentity.countryCode — leaving it unset lets Shopify
+        // show the country selector at checkout instead of locking it to
+        // the store's base country (GB).
       },
     },
   });

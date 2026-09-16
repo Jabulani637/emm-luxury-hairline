@@ -333,13 +333,31 @@ function setupCheckoutButton() {
   if (!checkoutBtn) return;
   checkoutButtonAttached = true;
 
-  checkoutBtn.addEventListener('click', () => {
+  checkoutBtn.addEventListener('click', async () => {
+    const cart = window.cartManager.getCart();
     const checkoutUrl = window.cartManager.getCheckoutUrl();
-    if (checkoutUrl) {
-      window.location.href = checkoutUrl;
-    } else {
+
+    if (!checkoutUrl || !cart) {
       alert('Your cart is empty');
+      return;
     }
+
+    // Clear any buyer identity country lock so the customer can freely
+    // choose their own country (e.g. South Africa, US) at Shopify checkout
+    // instead of being stuck on United Kingdom.
+    const originalText = checkoutBtn.textContent;
+    checkoutBtn.disabled = true;
+    checkoutBtn.textContent = 'Redirecting…';
+
+    try {
+      await window.cartAPI.clearBuyerIdentity(cart.id);
+    } catch (err) {
+      // Non-fatal — proceed to checkout anyway; the customer can still
+      // manually change country on Shopify's checkout page.
+      console.warn('[Cart] Could not clear buyer identity:', err.message);
+    }
+
+    window.location.href = checkoutUrl;
   });
 }
 
