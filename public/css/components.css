@@ -421,14 +421,25 @@
 
 .payment-icons {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
     flex-wrap: wrap;
+    justify-content: flex-end;
 }
+
 .payment-icons .payment-icon {
-    width: 48px;
-    height: 32px;
+    width: 42px;
+    height: 28px;
     display: inline-block;
+    background: #fff;
+    border-radius: 4px;
+    padding: 2px 3px;
+    overflow: hidden;
+}
+
+.payment-icons .payment-icon use {
+    width: 100%;
+    height: 100%;
 }
 
 
