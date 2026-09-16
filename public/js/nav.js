@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeCartDrawer();
   updateCartCount();
   setupCartListener();
+  initAccountLinks();   // wire account icon → Shopify hosted account
 });
 
 function initializeCartDrawer() {
@@ -132,7 +133,11 @@ function renderCartItems() {
     const lineItem = line.node;
     const merchandise = lineItem.merchandise;
     const product = merchandise?.product;
-    const image = merchandise?.image || product?.images?.[0];
+    // Image is nested: merchandise.image (direct) OR product.images.edges[0].node
+    const image = merchandise?.image
+      || product?.images?.edges?.[0]?.node
+      || product?.images?.[0]
+      || null;
     // Store lineId and current quantity directly on the stepper buttons as data attrs.
     // Use encodeURIComponent so the GID (which contains ? = :) is safe inside the attribute.
     const safeId = encodeURIComponent(lineItem.id);
@@ -145,7 +150,7 @@ function renderCartItems() {
         <div class="cart-item-details">
           <p class="cart-item-title">${escapeHtml(product?.title || 'Product')}</p>
           <p class="cart-item-variant">${escapeHtml(merchandise?.title || '')}</p>
-          <p class="cart-item-price">${formatPrice(merchandise?.price?.amount || 0, merchandise?.price?.currencyCode || 'USD')}</p>
+          <p class="cart-item-price">${formatPrice(merchandise?.price?.amount || 0, merchandise?.price?.currencyCode || 'GBP')}</p>
           <div class="cart-item-quantity">
             <button class="quantity-decrease" data-line-id="${safeId}" data-qty="${lineItem.quantity}">−</button>
             <span>${lineItem.quantity}</span>
@@ -207,4 +212,44 @@ function escapeHtml(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+/**
+ * Account links — resolves Shopify's hosted account/login URL from /api/config
+ * and sets it on every .account-link element in the page.
+ *
+ * Shopify hosted account URLs:
+ *   Login / Register : https://<store>/account/login
+ *   Account dashboard: https://<store>/account
+ *
+ * We always send to /account/login — Shopify automatically redirects logged-in
+ * customers to the dashboard and new visitors to the login/register page.
+ */
+async function initAccountLinks() {
+  const links = document.querySelectorAll('.account-link');
+  if (!links.length) return;
+
+  try {
+    const cfg = await fetch('/api/config').then(r => r.json());
+    const storeDomain = cfg.storeDomain;
+    if (!storeDomain) return;
+
+    const accountUrl = `https://${storeDomain}/account`;
+    const loginUrl   = `https://${storeDomain}/account/login`;
+
+    links.forEach(link => {
+      // Send to /account — Shopify redirects to login if not logged in,
+      // or to the dashboard if already logged in.
+      link.href = accountUrl;
+      link.setAttribute('target', '_blank');
+      link.setAttribute('rel', 'noopener noreferrer');
+      link.setAttribute('title', 'My Account');
+    });
+
+    // Show a subtle "Login" label next to the icon if the user hasn't logged in.
+    // We can't check session state from the frontend without a customer token,
+    // so we just make the link clearly navigable with a tooltip.
+  } catch (err) {
+    console.warn('[Nav] Could not resolve Shopify account URL:', err.message);
+  }
 }

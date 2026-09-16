@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!cartItemsSection) return;
 
   initShippingEstimate();
+  initCartPageQuantityHandlers(); // attach once — delegated, survives re-renders
   renderCartPage();
 
   window.cartManager.subscribe(renderCartPage);
@@ -258,21 +259,26 @@ function renderCartPage() {
     const lineItem = line.node;
     const merchandise = lineItem.merchandise;
     const product = merchandise?.product;
-    const image = merchandise?.image || product?.images?.[0];
+    // Image nested in GraphQL edges: product.images.edges[0].node
+    const image = merchandise?.image
+      || product?.images?.edges?.[0]?.node
+      || product?.images?.[0]
+      || null;
+    const safeId = encodeURIComponent(lineItem.id);
 
     return `
       <div class="cart-item">
         <div class="cart-item-image">
-          ${image ? `<img src="${image.url}" alt="${image.altText || merchandise.title}">` : '<div class="no-image">No image</div>'}
+          ${image ? `<img src="${image.url}" alt="${image.altText || merchandise.title || ''}">` : '<div class="no-image">No image</div>'}
         </div>
         <div class="cart-item-details">
           <p class="cart-item-title">${product?.title || 'Product'}</p>
           <p class="cart-item-variant">${merchandise?.title || ''}</p>
-          <p class="cart-item-price">${formatPrice(merchandise?.price?.amount || 0, merchandise?.price?.currencyCode || 'USD')}</p>
+          <p class="cart-item-price">${formatPrice(merchandise?.price?.amount || 0, merchandise?.price?.currencyCode || 'GBP')}</p>
           <div class="cart-item-quantity">
-            <button class="quantity-decrease" data-line-id="${lineItem.id}">−</button>
+            <button class="quantity-decrease" data-line-id="${safeId}" data-qty="${lineItem.quantity}">−</button>
             <span>${lineItem.quantity}</span>
-            <button class="quantity-increase" data-line-id="${lineItem.id}">+</button>
+            <button class="quantity-increase" data-line-id="${safeId}" data-qty="${lineItem.quantity}">+</button>
           </div>
         </div>
       </div>
@@ -282,13 +288,48 @@ function renderCartPage() {
   cartItemsSection.innerHTML = itemsHtml;
 
   refreshTotalsDisplay();
-  setupQuantityHandlers();
   setupCheckoutButton();
 
   const currentRates = window.cartManager.getShippingRates();
   if (currentRates && currentRates.length > 0) {
     renderShippingRates(currentRates);
   }
+}
+
+// ONE delegated listener on the cart items section — survives re-renders,
+// never stacks up, only handles the item that was clicked.
+let cartPageQtyHandlerAttached = false;
+function initCartPageQuantityHandlers() {
+  const section = document.getElementById('cart-items-section');
+  if (!section || cartPageQtyHandlerAttached) return;
+  cartPageQtyHandlerAttached = true;
+
+  section.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.quantity-decrease, .quantity-increase');
+    if (!btn) return;
+
+    const lineId = decodeURIComponent(btn.dataset.lineId || '');
+    if (!lineId) return;
+
+    const currentQty = parseInt(btn.dataset.qty, 10) || 1;
+    const isDecrease = btn.classList.contains('quantity-decrease');
+    const newQty = isDecrease ? currentQty - 1 : currentQty + 1;
+
+    if (isDecrease && currentQty <= 1) return;
+
+    // Disable both steppers for this item while updating
+    const wrapper = btn.closest('.cart-item-quantity');
+    if (wrapper) wrapper.querySelectorAll('button').forEach(b => { b.disabled = true; });
+
+    try {
+      await window.cartManager.updateQuantity(lineId, newQty);
+      // cartManager.subscribe → renderCartPage will re-render automatically
+    } catch (err) {
+      console.error('[CartPage] Failed to update quantity:', err);
+      alert('Failed to update quantity. Please try again.');
+      if (wrapper) wrapper.querySelectorAll('button').forEach(b => { b.disabled = false; });
+    }
+  });
 }
 
 function refreshTotalsDisplay() {
@@ -387,37 +428,4 @@ function setupCheckoutButton() {
   });
 }
 
-function setupQuantityHandlers() {
-  const decreaseButtons = document.querySelectorAll('.quantity-decrease');
-  const increaseButtons = document.querySelectorAll('.quantity-increase');
 
-  decreaseButtons.forEach(button => {
-    button.addEventListener('click', async () => {
-      const lineId = button.dataset.lineId;
-      const currentQuantity = parseInt(button.nextElementSibling.textContent);
-      
-      if (currentQuantity > 1) {
-        try {
-          await window.cartManager.updateQuantity(lineId, currentQuantity - 1);
-        } catch (error) {
-          console.error('[Cart] Failed to update quantity:', error);
-          alert('Failed to update quantity');
-        }
-      }
-    });
-  });
-
-  increaseButtons.forEach(button => {
-    button.addEventListener('click', async () => {
-      const lineId = button.dataset.lineId;
-      const currentQuantity = parseInt(button.previousElementSibling.textContent);
-      
-      try {
-        await window.cartManager.updateQuantity(lineId, currentQuantity + 1);
-      } catch (error) {
-        console.error('[Cart] Failed to update quantity:', error);
-        alert('Failed to update quantity');
-      }
-    });
-  });
-}
