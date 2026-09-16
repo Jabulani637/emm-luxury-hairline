@@ -326,6 +326,35 @@ function refreshTotalsDisplay() {
   }
 }
 
+/**
+ * Converts Shopify's cart permalink URL (/cart/c/TOKEN) to the direct
+ * checkout URL (/checkouts/cn/TOKEN) and appends skip_shop_pay=true
+ * so it goes straight to the checkout form without being intercepted
+ * by Shop Pay or redirecting to the storefront homepage.
+ *
+ * Input:  https://store.myshopify.com/cart/c/TOKEN?key=...
+ * Output: https://store.myshopify.com/checkouts/cn/TOKEN?skip_shop_pay=true
+ */
+function buildDirectCheckoutUrl(cartCheckoutUrl) {
+  try {
+    const url = new URL(cartCheckoutUrl);
+    // /cart/c/TOKEN → /checkouts/cn/TOKEN
+    const match = url.pathname.match(/^\/cart\/c\/([^/?]+)/);
+    if (match) {
+      url.pathname = '/checkouts/cn/' + match[1];
+    }
+    // Remove Shopify's internal tracking params that can cause redirects
+    url.searchParams.delete('_s');
+    url.searchParams.delete('_y');
+    // Force skip Shop Pay interception
+    url.searchParams.set('skip_shop_pay', 'true');
+    return url.toString();
+  } catch (_) {
+    // Fallback: use original URL unchanged
+    return cartCheckoutUrl;
+  }
+}
+
 let checkoutButtonAttached = false;
 function setupCheckoutButton() {
   if (checkoutButtonAttached) return;
@@ -335,16 +364,13 @@ function setupCheckoutButton() {
 
   checkoutBtn.addEventListener('click', async () => {
     const cart = window.cartManager.getCart();
-    const checkoutUrl = window.cartManager.getCheckoutUrl();
+    const rawCheckoutUrl = window.cartManager.getCheckoutUrl();
 
-    if (!checkoutUrl || !cart) {
+    if (!rawCheckoutUrl || !cart) {
       alert('Your cart is empty');
       return;
     }
 
-    // Clear any buyer identity country lock so the customer can freely
-    // choose their own country (e.g. South Africa, US) at Shopify checkout
-    // instead of being stuck on United Kingdom.
     const originalText = checkoutBtn.textContent;
     checkoutBtn.disabled = true;
     checkoutBtn.textContent = 'Redirecting…';
@@ -352,12 +378,12 @@ function setupCheckoutButton() {
     try {
       await window.cartAPI.clearBuyerIdentity(cart.id);
     } catch (err) {
-      // Non-fatal — proceed to checkout anyway; the customer can still
-      // manually change country on Shopify's checkout page.
       console.warn('[Cart] Could not clear buyer identity:', err.message);
     }
 
-    window.location.href = checkoutUrl;
+    // Use the direct /checkouts/cn/ URL to bypass Shop Pay interception
+    const directUrl = buildDirectCheckoutUrl(rawCheckoutUrl);
+    window.location.href = directUrl;
   });
 }
 

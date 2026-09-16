@@ -1,4 +1,26 @@
 /**
+ * Converts Shopify's cart permalink (/cart/c/TOKEN) to the direct checkout
+ * URL (/checkouts/cn/TOKEN?skip_shop_pay=true) so the browser lands on the
+ * standard Shopify checkout form instead of being intercepted by Shop Pay
+ * or bounced back to the storefront homepage.
+ */
+function buildDirectCheckoutUrl(cartCheckoutUrl) {
+  try {
+    const url = new URL(cartCheckoutUrl);
+    const match = url.pathname.match(/^\/cart\/c\/([^/?]+)/);
+    if (match) {
+      url.pathname = '/checkouts/cn/' + match[1];
+    }
+    url.searchParams.delete('_s');
+    url.searchParams.delete('_y');
+    url.searchParams.set('skip_shop_pay', 'true');
+    return url.toString();
+  } catch (_) {
+    return cartCheckoutUrl;
+  }
+}
+
+/**
  * Navigation JavaScript
  * Shared header/cart-count logic across all pages
  */
@@ -41,9 +63,9 @@ function initializeCartDrawer() {
   if (checkoutBtn) {
     checkoutBtn.addEventListener('click', async () => {
       const cart = window.cartManager.getCart();
-      const checkoutUrl = window.cartManager.getCheckoutUrl();
+      const rawCheckoutUrl = window.cartManager.getCheckoutUrl();
 
-      if (!checkoutUrl || !cart) {
+      if (!rawCheckoutUrl || !cart) {
         alert('Your cart is empty');
         return;
       }
@@ -58,7 +80,9 @@ function initializeCartDrawer() {
         console.warn('[Cart] Could not clear buyer identity:', err.message);
       }
 
-      window.location.href = checkoutUrl;
+      // Use direct /checkouts/cn/ URL to bypass Shop Pay interception
+      const directUrl = buildDirectCheckoutUrl(rawCheckoutUrl);
+      window.location.href = directUrl;
     });
   }
 
