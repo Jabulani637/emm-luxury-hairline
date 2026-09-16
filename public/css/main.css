@@ -261,17 +261,32 @@ footer {
   letter-spacing: 0.3px;
 }
 
-.social-links { display: flex; gap: 20px; }
-
-.social-links a {
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  color: var(--gold-light);
-  transition: color 0.2s;
+.social-links {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
-.social-links a:hover { color: var(--gold); }
+.social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(189, 158, 102, 0.30);
+  color: var(--gold-light);
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.social-link:hover {
+  color: var(--charcoal-dark);
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+.social-link svg { display: block; }
 
 /* ── Sections ─────────────────────────────────────────────────────── */
 .loading {
