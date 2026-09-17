@@ -125,36 +125,53 @@
     }
 }
 
-.hero-gradient {
+/* ── Hero Slideshow ────────────────────────────────────────────────── */
+.hero-slideshow {
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, var(--burgundy), var(--burgundy-dark));
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    overflow: hidden;
 }
 
-.hero-text {
-    text-align: center;
-    color: var(--white);
+/* Each slide stacked on top of each other, hidden by default */
+.hero-slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 1.2s ease-in-out;
+    /* Ken Burns subtle zoom for depth */
 }
 
-.hero-text p:first-child {
-    font-family: Georgia, serif;
-    font-size: 32px;
-    font-weight: 700;
-    margin-bottom: 8px;
+.hero-slide.active {
+    opacity: 1;
 }
 
-@media (min-width: 1024px) {
-    .hero-text p:first-child {
-        font-size: 36px;
-    }
+.hero-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+    /* subtle scale animation on active slide */
+    transform: scale(1.05);
+    transition: transform 8s ease-out;
 }
 
-.hero-text p:last-child {
-    font-size: 16px;
-    opacity: 0.8;
+.hero-slide.active img {
+    transform: scale(1);
+}
+
+/* Dark overlay so left-side text stays readable */
+.hero-slideshow::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to right,
+        rgba(0,0,0,0.35) 0%,
+        rgba(0,0,0,0.10) 50%,
+        rgba(0,0,0,0) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
 }
 
 /* Categories */
