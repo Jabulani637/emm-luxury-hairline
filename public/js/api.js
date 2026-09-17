@@ -1,4 +1,4 @@
-/**
+﻿/**
  * API client - wraps fetch calls to your backend API
  * Never calls Shopify directly, always goes through your backend /api/* endpoints
  *
@@ -9,7 +9,7 @@
  *   4. Fallback: the default Render backend URL below (EDIT THIS FOR YOUR DEPLOYMENT)
  */
 
-const DEFAULT_RENDER_BACKEND = 'https://emm-luxury-hairline.onrender.com';
+const DEFAULT_RENDER_BACKEND = 'https://emm-luxury-hair.onrender.com';
 
 function resolveApiBase() {
   if (typeof window !== 'undefined' && window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) {
