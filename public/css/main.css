@@ -71,24 +71,24 @@ header {
     background: var(--white);
 }
 
-/* ── Announcement bar — vertical infinite ticker ─────────────────── */
+/* ── Announcement bar — horizontal infinite ticker ───────────────── */
 .announcement-bar {
-    background: #2C2C2C;          /* charcoal */
+    background: #2C2C2C;
     height: 36px;
     overflow: hidden;
     position: relative;
     display: flex;
     align-items: center;
-    justify-content: center;
 }
 
-/* The track slides upward; contains each message twice for seamless loop */
+/* The track slides left; items are laid out in a single row and duplicated for a seamless loop */
 .announcement-track {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    animation: tickerSlide 10s linear infinite;
-    /* pause on hover so users can read */
+    white-space: nowrap;
+    animation: tickerSlide 28s linear infinite;
+    will-change: transform;
 }
 
 .announcement-bar:hover .announcement-track {
@@ -97,23 +97,38 @@ header {
 
 /* Each individual message */
 .announcement-item {
-    height: 36px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    white-space: nowrap;
+    padding: 0 48px;          /* horizontal gap between items */
+    height: 36px;
     color: #FFFFFF;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
-    letter-spacing: 1.2px;
+    letter-spacing: 1.4px;
     text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
-/* One step = 1/N of the total height, where N = number of items (5 items duplicated = 10 total) */
-/* total height = 36px * 5 items (the original set). Slide up by exactly that. */
+/* Separator dot between items */
+.announcement-item::after {
+    content: '✦';
+    position: absolute;
+    right: 0;
+    color: rgba(255,255,255,0.35);
+    font-size: 8px;
+}
+
+.announcement-item {
+    position: relative;
+}
+
+/* Slide left by exactly the width of one full set of 5 items.
+   Each item is ~ (text width + 96px padding).
+   We duplicate the set so the loop is seamless. */
 @keyframes tickerSlide {
-    0%   { transform: translateY(0); }
-    100% { transform: translateY(calc(-36px * 5)); }
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
 }
 
 .header-content {
@@ -161,20 +176,16 @@ header {
     gap: 24px;
 }
 
-.search-btn,
-.account-link {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px;
-    color: var(--burgundy);
-    transition: color 0.2s;
+.search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  color: var(--burgundy);
+  transition: color 0.2s;
 }
 
-.search-btn:hover,
-.account-link:hover {
-    color: var(--burgundy-dark);
-}
+.search-btn:hover { color: var(--burgundy-dark); }
 
 .cart-btn {
     display: flex;

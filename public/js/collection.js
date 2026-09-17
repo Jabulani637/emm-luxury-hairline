@@ -1,6 +1,8 @@
 /**
  * Collection Page JavaScript
- * Handles loading and displaying collection products
+ * Handles loading and displaying collection products.
+ * Falls back to fetching all products when the collection handle
+ * is "all" or when no matching Shopify collection is found.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -8,25 +10,44 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   if (!collectionPage) return;
 
-  // Get collection handle from URL
   const urlParams = new URLSearchParams(window.location.search);
-  const handle = urlParams.get('handle');
+  const handle = urlParams.get('handle') || 'all';
 
-  if (!handle) {
-    collectionPage.innerHTML = '<div class="error-message"><p>Collection handle not specified.</p></div>';
+  // "all" is Shopify's virtual collection — not a real collection handle.
+  // Fetch all products directly via the products API instead.
+  if (handle === 'all') {
+    try {
+      collectionPage.innerHTML = '<div class="loading">Loading products…</div>';
+      const response = await window.productsAPI.getProducts({ first: 24, sortKey: 'BEST_SELLING' });
+      const products = response.products || [];
+      renderCollection({
+        title: 'All Products',
+        description: '',
+        products,
+      });
+    } catch (error) {
+      console.error('[Collection] Failed to load all products:', error);
+      collectionPage.innerHTML = '<div class="error-message"><p>Unable to load products at this time.</p></div>';
+    }
     return;
   }
 
   try {
+    collectionPage.innerHTML = '<div class="loading">Loading collection…</div>';
     const response = await window.collectionsAPI.getCollection(handle);
     
     if (!response.collection) {
-      collectionPage.innerHTML = '<div class="error-message"><p>Collection not found.</p></div>';
+      // Collection handle doesn't exist in Shopify yet — show all products
+      const fallback = await window.productsAPI.getProducts({ first: 24, sortKey: 'BEST_SELLING' });
+      renderCollection({
+        title: handle.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        description: '',
+        products: fallback.products || [],
+      });
       return;
     }
 
-    const collection = response.collection;
-    renderCollection(collection);
+    renderCollection(response.collection);
   } catch (error) {
     console.error('[Collection] Failed to load collection:', error);
     collectionPage.innerHTML = '<div class="error-message"><p>Unable to load this collection at this time.</p></div>';

@@ -7,12 +7,7 @@
     <link rel="icon" href="/assets/Emm_Luxury_Hairline.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/components.css">
-    <!-- Google font and Shopify Storefront Web Components -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
-      rel="stylesheet"
-    />
-    <script type="module" src="https://cdn.shopify.com/storefront/web-components.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet"/>
 </head>
 <body>
     <!-- Header -->
@@ -64,12 +59,6 @@
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
                 </button>
-                <a href="#" class="account-link" aria-label="My Account">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                </a>
                 <button class="cart-btn" aria-label="Shopping Cart">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="9" cy="21" r="1"></circle>
@@ -84,86 +73,9 @@
 
     <!-- Main Content -->
     <main>
-      <!-- Initialize shopify-store with server-provided public token -->
-      <script>
-        (async function(){
-          try{
-            const res = await fetch('/api/config');
-            const cfg = await res.json();
-            const storeDomain = cfg.storeDomain;
-            const publicToken = cfg.publicAccessToken;
-            // ensure a single shopify-store exists
-            let storeEl = document.querySelector('shopify-store');
-            if (!storeEl) {
-              storeEl = document.createElement('shopify-store');
-              document.body.insertBefore(storeEl, document.body.firstChild);
-            }
-            storeEl.setAttribute('store-domain', `https://${storeDomain}`);
-            storeEl.setAttribute('language', 'en');
-            if (publicToken) storeEl.setAttribute('public-access-token', publicToken);
-          } catch (e) {
-            console.error('failed to init shopify-store', e);
-          }
-        })();
-      </script>
-
-      <!-- Storefront Web Components collection layout (unisex) -->
-      <shopify-context type="collection" handle="unisex">
-        <template>
-          <div class="collection">
-            <h2 class="collection__title"><shopify-data query="collection.title"></shopify-data></h2>
-
-            <div class="product-grid">
-              <shopify-list-context type="product" query="collection.products" first="12">
-                <template>
-                  <button shopify-attr--disabled="!product.availableForSale" class="product-card" onclick="getElementById('product-modal').showModal(); getElementById('product-modal-context').update(event);">
-                    <div class="product-card__image-container">
-                      <shopify-media max-images="1" width="280" height="280" query="product.selectedOrFirstAvailableVariant.image"></shopify-media>
-                    </div>
-                    <div class="product-card__details">
-                      <div class="product-card__info">
-                        <h3 class="product-card__title"><span aria-hidden="true" class="product-card__link"></span><shopify-data query="product.title"></shopify-data></h3>
-                        <p class="product-card__price"><shopify-money query="product.selectedOrFirstAvailableVariant.price"></shopify-money></p>
-                        <p class="product-card__category"><shopify-data query="product.selectedOrFirstAvailableVariant.product.category.name"></shopify-data></p>
-                      </div>
-                    </div>
-                  </button>
-                </template>
-              </shopify-list-context>
-            </div>
-          </div>
-
-          <shopify-cart id="cart"></shopify-cart>
-
-          <dialog id="product-modal" class="product-modal">
-            <shopify-context id="product-modal-context" type="product" wait-for-update>
-              <template>
-                <div class="product-modal__container">
-                  <div class="product-modal__close-container"><button class="product-modal__close" onclick="getElementById('product-modal').close();">&#10005;</button></div>
-                  <div class="product-modal__content">
-                    <div class="product-modal__layout">
-                      <div class="product-modal__media"><shopify-media max-images="1" width="400" height="500" query="product.selectedOrFirstAvailableVariant.image"></shopify-media></div>
-                      <div class="product-modal__details">
-                        <div class="product-modal__header">
-                          <div><span class="product-modal__vendor"><shopify-data query="product.vendor"></shopify-data></span></div>
-                          <h1 class="product-modal__title"><shopify-data query="product.title"></shopify-data></h1>
-                          <div class="product-modal__price-container"><shopify-money query="product.selectedOrFirstAvailableVariant.price"></shopify-money><shopify-money class="product-modal__compare-price" query="product.selectedOrFirstAvailableVariant.compareAtPrice"></shopify-money></div>
-                        </div>
-                        <shopify-variant-selector></shopify-variant-selector>
-                        <div class="product-modal__buttons">
-                          <button class="product-modal__add-button" onclick="getElementById('cart').addLine(event).showModal();" shopify-attr--disabled="!product.selectedOrFirstAvailableVariant.availableForSale">Add to cart</button>
-                          <button class="product-modal__buy-button" onclick="document.querySelector('shopify-store').buyNow(event)" shopify-attr--disabled="!product.selectedOrFirstAvailableVariant.availableForSale">Buy now</button>
-                        </div>
-                        <div class="product-modal__description"><span class="product-modal__description-text"><shopify-data query="product.descriptionHtml"></shopify-data></span></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </template>
-            </shopify-context>
-          </dialog>
-        </template>
-      </shopify-context>
+        <div id="collection-page" class="collection-page">
+            <div class="loading">Loading collection…</div>
+        </div>
     </main>
 
     <!-- Footer -->
