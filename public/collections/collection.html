@@ -173,7 +173,23 @@
                 <button class="btn btn-primary checkout-btn">Checkout</button>
             </div>
         </div>
-    </div>
+    </div>    <script>
+      (function() {
+        var h = window.location.hostname;
+        var apiBase;
+        if (h === 'localhost' || h === '127.0.0.1') {
+          // Local development
+          apiBase = 'http://localhost:3000/api';
+        } else if (h.indexOf('vercel.app') !== -1 || h.indexOf('emm-luxury-hairline') !== -1) {
+          // Vercel frontend — point to Render backend
+          apiBase = 'https://emm-luxury-hair.onrender.com/api';
+        } else {
+          // Any other deployment — assume backend is same origin
+          apiBase = window.location.origin + '/api';
+        }
+        window.APP_CONFIG = { API_BASE_URL: apiBase };
+      })();
+    </script>
     <script src="/js/api.js"></script>
     <script src="/js/cart.js"></script>
     <script src="/js/collection.js"></script>
