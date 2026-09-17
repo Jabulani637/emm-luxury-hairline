@@ -18,15 +18,44 @@ const allowedOrigins = [
   'https://emm-luxury-hair.onrender.com',
 ].filter(Boolean);
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, server-to-server)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error('CORS: origin not allowed — ' + origin));
-  },
-  credentials: true,
-}));
+// Build CORS options that will echo the incoming Origin when it is allowed.
+// If CORS_ALLOW_ALL=1 is set in environment, reflect the Origin header to allow cross-origin requests
+// (useful for debugging; prefer setting FRONTEND_URL in production).
+let corsOptions;
+if (process.env.CORS_ALLOW_ALL === '1') {
+  corsOptions = {
+    origin: true, // reflect request origin
+    credentials: true,
+    optionsSuccessStatus: 204,
+    exposedHeaders: ['ETag']
+  };
+} else {
+  corsOptions = {
+    origin: function (origin, callback) {
+      // Allow requests with no origin (mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      // Exact match allowed origins
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // If FRONTEND_URL is set and origin matches its hostname (allow subpaths), permit it
+      try {
+        const allowedHostnames = allowedOrigins.map(o => {
+          try { return new URL(o).origin; } catch (e) { return o; }
+        });
+        if (allowedHostnames.includes(origin)) return callback(null, true);
+      } catch (e) { /* ignore */ }
+      // Not allowed - do not error here (error causes no CORS headers). Return false so cors middleware will not set origin header.
+      return callback(null, false);
+    },
+    credentials: true,
+    optionsSuccessStatus: 204,
+    exposedHeaders: ['ETag']
+  };
+}
+
+// Apply CORS preflight handler and middleware
+app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
+
 app.use(express.json());
 // Serve the public folder from the project root
 app.use(express.static(PUBLIC_DIR));
