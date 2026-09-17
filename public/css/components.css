@@ -132,43 +132,36 @@
     overflow: hidden;
 }
 
-/* Each slide stacked on top of each other, hidden by default */
+/* Each slide fills the container via background-image — works for both SVG and JPG */
 .hero-slide {
     position: absolute;
     inset: 0;
     opacity: 0;
-    transition: opacity 1.2s ease-in-out;
-    /* Ken Burns subtle zoom for depth */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    /* crossfade */
+    transition: opacity 1.4s ease-in-out, transform 8s ease-out;
+    transform: scale(1.06);   /* start slightly zoomed in */
+    will-change: opacity, transform;
 }
 
+/* Active slide fades in and zooms to normal size — Ken Burns effect */
 .hero-slide.active {
     opacity: 1;
-}
-
-.hero-slide img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center top;
-    /* subtle scale animation on active slide */
-    transform: scale(1.05);
-    transition: transform 8s ease-out;
-}
-
-.hero-slide.active img {
     transform: scale(1);
 }
 
-/* Dark overlay so left-side text stays readable */
+/* Dark gradient overlay — keeps left-side text readable over any image */
 .hero-slideshow::after {
     content: '';
     position: absolute;
     inset: 0;
     background: linear-gradient(
         to right,
-        rgba(0,0,0,0.35) 0%,
-        rgba(0,0,0,0.10) 50%,
-        rgba(0,0,0,0) 100%
+        rgba(0, 0, 0, 0.50) 0%,
+        rgba(0, 0, 0, 0.20) 50%,
+        rgba(0, 0, 0, 0.05) 100%
     );
     pointer-events: none;
     z-index: 1;
