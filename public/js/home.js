@@ -26,6 +26,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (error) {
     console.error('[Home] Failed to load bestsellers:', error);
     const errorMessage = error.message || 'Unknown error';
+    // Provide additional diagnostic info for local dev
+    try {
+      const resolved = await window.__resolveApiBase();
+      console.info('[Home] Resolved API base for diagnostics:', resolved);
+    } catch (e) {
+      console.info('[Home] Could not resolve API base for diagnostics');
+    }
     bestsellersGrid.innerHTML = `
       <div class="error-message" style="padding: 20px; background: #fee; border: 1px solid #fcc; border-radius: 8px; text-align: center;">
         <p style="color: #c33; font-weight: 600;">Unable to load products</p>

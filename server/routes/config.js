@@ -18,9 +18,12 @@ router.get('/', (req, res) => {
   // Resolve backend URL:
   //   1. BACKEND_URL env var (set this in .env or Render dashboard)
   //   2. Fallback: derive from the incoming request (works on any host)
-  const backendUrl  = (process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+  const proto = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.get('host');
+  const backendUrl  = (process.env.BACKEND_URL || `${proto}://${host}`).replace(/\/$/, '');
   const frontendUrl = (process.env.FRONTEND_URL || backendUrl).replace(/\/$/, '');
-  const apiBaseUrl  = backendUrl + '/api';
+  // compute api base from incoming request so clients receive an absolute backend API URL
+  const apiBaseUrl  = `${proto}://${host}/api`;
 
   if (!storeDomain) {
     return res.status(500).json({ error: 'Store domain not configured. Set SHOPIFY_STORE_DOMAIN in .env' });

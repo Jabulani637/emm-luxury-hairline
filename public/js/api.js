@@ -25,9 +25,19 @@ async function resolveApiBase() {
 
   // Only fire one /api/config request even if multiple callers hit this simultaneously
   if (!_configPromise) {
-    _configPromise = fetch('/api/config')
-      .then(r => r.ok ? r.json() : null)
-      .catch(() => null);
+    // Try with a short timeout to avoid long waits when page is served from file:// or a different host
+    _configPromise = (async () => {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 1500);
+        const r = await fetch('/api/config', { signal: controller.signal });
+        clearTimeout(timer);
+        if (!r.ok) return null;
+        return await r.json();
+      } catch (err) {
+        return null;
+      }
+    })();
   }
 
   const cfg = await _configPromise;
@@ -40,11 +50,23 @@ async function resolveApiBase() {
     }
     return _apiBase;
   }
-
-  // Ultimate fallback: same origin
-  _apiBase = (typeof window !== 'undefined')
-    ? `${window.location.protocol}//${window.location.host}/api`
-    : '/api';
+  // Fallbacks in order:
+  // 1) window.APP_CONFIG.API_BASE_URL if present
+  if (typeof window !== 'undefined' && window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) {
+    _apiBase = window.APP_CONFIG.API_BASE_URL.replace(/\/$/, '');
+    return _apiBase;
+  }
+  // 2) If page is served from file:// -> assume local server
+  if (typeof window !== 'undefined' && window.location && window.location.protocol === 'file:') {
+    _apiBase = 'http://localhost:3000/api';
+    return _apiBase;
+  }
+  // 3) Same-origin backend (when frontend served by same host)
+  if (typeof window !== 'undefined') {
+    _apiBase = `${window.location.protocol}//${window.location.host}/api`;
+    return _apiBase;
+  }
+  _apiBase = '/api';
   return _apiBase;
 }
 
