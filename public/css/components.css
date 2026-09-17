@@ -2342,3 +2342,219 @@ textarea.form-input {
 .policy-section--liability .policy-item--warning svg {
     stroke: #c0651a;
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Contact Page
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.contact-page {
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+}
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+.contact-hero {
+    margin-bottom: 48px;
+}
+
+.contact-hero h1 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--burgundy);
+    margin: 12px 0 10px;
+    line-height: 1.15;
+}
+
+@media (min-width: 768px) {
+    .contact-hero h1 { font-size: 48px; }
+}
+
+.contact-sub {
+    font-size: 16px;
+    color: var(--ink-muted);
+    line-height: 1.65;
+    max-width: 640px;
+    margin-top: 8px;
+}
+
+/* ── Two-column layout ────────────────────────────────────────────────── */
+.contact-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 40px;
+    margin-bottom: 72px;
+}
+
+@media (min-width: 900px) {
+    .contact-grid {
+        grid-template-columns: 340px 1fr;
+        gap: 48px;
+    }
+}
+
+/* ── Contact info cards ───────────────────────────────────────────────── */
+.contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.contact-card {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    background: var(--blush-light);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 20px;
+    transition: box-shadow 0.2s;
+}
+
+.contact-card:hover {
+    box-shadow: 0 6px 20px rgba(122, 43, 63, 0.08);
+}
+
+.contact-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--burgundy);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.contact-card-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.contact-card-body h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 6px;
+}
+
+.contact-card-body p {
+    font-size: 13px;
+    color: var(--ink-muted);
+    line-height: 1.6;
+    margin: 0 0 10px;
+}
+
+.contact-card-body p:last-child {
+    margin-bottom: 0;
+}
+
+.contact-card-link {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--burgundy);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 1px;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.contact-card-link:hover {
+    color: var(--burgundy-dark);
+    border-color: var(--burgundy);
+}
+
+/* ── Contact form ─────────────────────────────────────────────────────── */
+.contact-form-section {
+    background: var(--white);
+    border-radius: 14px;
+    padding: 32px;
+    border: 1px solid var(--border-subtle);
+}
+
+.contact-form-section h2 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--burgundy);
+    margin: 0 0 8px;
+}
+
+.contact-form-sub {
+    font-size: 14px;
+    color: var(--ink-muted);
+    margin: 0 0 24px;
+    line-height: 1.6;
+}
+
+/* ── About strip ──────────────────────────────────────────────────────── */
+.contact-about {
+    background: var(--blush-light);
+    border-radius: 16px;
+    border: 1px solid var(--border-subtle);
+    padding: 48px 40px;
+}
+
+.contact-about-inner h2 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--burgundy);
+    margin: 0 0 16px;
+}
+
+.contact-about-inner > p {
+    font-size: 15px;
+    color: var(--ink-muted);
+    line-height: 1.75;
+    max-width: 720px;
+    margin: 0 0 14px;
+}
+
+.contact-about-values {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    margin-top: 36px;
+}
+
+@media (min-width: 768px) {
+    .contact-about-values {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.contact-value {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.contact-value-icon {
+    color: var(--gold, #D4A854);
+    font-size: 18px;
+}
+
+.contact-value h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0;
+}
+
+.contact-value p {
+    font-size: 13px;
+    color: var(--ink-muted);
+    line-height: 1.6;
+    margin: 0;
+}
+
+@media (max-width: 640px) {
+    .contact-form-section { padding: 20px; }
+    .contact-about { padding: 32px 20px; }
+    .contact-about-values { grid-template-columns: 1fr; }
+}

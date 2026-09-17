@@ -1,29 +1,44 @@
 const express = require('express');
-const router = express.Router();
+const router  = express.Router();
 
-// GET /api/config - expose non-sensitive public config for storefront web components
+/**
+ * GET /api/config
+ * Exposes public, non-sensitive configuration to the frontend.
+ * All values come from environment variables — never hardcoded.
+ *
+ * Frontend reads this once on load to know:
+ *   - storeDomain / publicAccessToken  → Shopify Storefront API
+ *   - apiBaseUrl                       → where to send all /api/* requests
+ *   - frontendUrl                      → base URL of the site (for redirects etc.)
+ */
 router.get('/', (req, res) => {
-  const storeDomain = process.env.SHOPIFY_STORE_DOMAIN || process.env.SHOPIFY_STORE || '';
+  const storeDomain       = process.env.SHOPIFY_STORE_DOMAIN || process.env.SHOPIFY_STORE || '';
   const publicAccessToken = process.env.SHOPIFY_PUBLIC_ACCESS_TOKEN || '';
 
-  const apiBaseUrl = `${req.protocol}://${req.get('host')}/api`;
+  // Resolve backend URL:
+  //   1. BACKEND_URL env var (set this in .env or Render dashboard)
+  //   2. Fallback: derive from the incoming request (works on any host)
+  const backendUrl  = (process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+  const frontendUrl = (process.env.FRONTEND_URL || backendUrl).replace(/\/$/, '');
+  const apiBaseUrl  = backendUrl + '/api';
 
-  const product = (() => {
-    try {
-      const tokenCandidates = [process.env.STOREFRONT_TOKEN, process.env.SHOPIFY_PUBLIC_ACCESS_TOKEN, process.env.SHOPIFY_STOREFRONT_TOKEN];
-      const tokenConfigured = tokenCandidates.find(t => t && !t.startsWith('shpat_'));
-      return {
-        storeConfigured: !!storeDomain,
-        tokenConfigured: !!tokenConfigured,
-        tokenUsesShpatPrefix: !!(process.env.SHOPIFY_STOREFRONT_TOKEN && process.env.SHOPIFY_STOREFRONT_TOKEN.startsWith('shpat_')),
-      };
-    } catch (_) {
-      return { storeConfigured: !!storeDomain, tokenConfigured: !!publicAccessToken };
-    }
-  })();
+  if (!storeDomain) {
+    return res.status(500).json({ error: 'Store domain not configured. Set SHOPIFY_STORE_DOMAIN in .env' });
+  }
 
-  if (!storeDomain) return res.status(500).json({ error: 'store domain not configured' });
-  res.json({ storeDomain, publicAccessToken, apiBaseUrl, status: product });
+  res.json({
+    storeDomain,
+    publicAccessToken,
+    apiBaseUrl,
+    backendUrl,
+    frontendUrl,
+    // diagnostic — never expose secrets, only readiness flags
+    status: {
+      storeConfigured:      !!storeDomain,
+      tokenConfigured:      !!publicAccessToken,
+      adminConfigured:      !!(process.env.SHOPIFY_ADMIN_ACCESS_TOKEN),
+    },
+  });
 });
 
 module.exports = router;

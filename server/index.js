@@ -55,6 +55,14 @@ app.get('/pages/shipping-returns', (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'pages', 'shipping-returns.html'));
 });
 
+app.get('/pages/contact', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'pages', 'contact.html'));
+});
+
+app.get('/pages/contact.html', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'pages', 'contact.html'));
+});
+
 // Serve static files for all other routes (fallback to index.html)
 app.use((req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
