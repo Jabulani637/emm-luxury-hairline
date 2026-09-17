@@ -1,4 +1,4 @@
-const path = require('path');
+﻿const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const express = require('express');
 const cors = require('cors');
@@ -8,8 +8,25 @@ const PUBLIC_DIR = path.join(PROJECT_ROOT, 'public');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-// Middleware
-app.use(cors());
+// CORS — allow Vercel frontend, Render backend, and localhost dev
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  process.env.FRONTEND_URL,
+  process.env.BACKEND_URL,
+  'https://emm-luxury-hairline.vercel.app',
+  'https://emm-luxury-hair.onrender.com',
+].filter(Boolean);
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('CORS: origin not allowed — ' + origin));
+  },
+  credentials: true,
+}));
 app.use(express.json());
 // Serve the public folder from the project root
 app.use(express.static(PUBLIC_DIR));
