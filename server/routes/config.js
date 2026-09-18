@@ -1,6 +1,12 @@
 const express = require('express');
 const router  = express.Router();
 
+function normalizeUrl(value) {
+  if (!value) return value;
+  const withProtocol = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+  return withProtocol.replace(/\/$/, '');
+}
+
 /**
  * GET /api/config
  * Exposes public, non-sensitive configuration to the frontend.
@@ -20,10 +26,10 @@ router.get('/', (req, res) => {
   //   2. Fallback: derive from the incoming request (works on any host)
   const proto = req.headers['x-forwarded-proto'] || req.protocol;
   const host = req.get('host');
-  const backendUrl  = (process.env.BACKEND_URL || `${proto}://${host}`).replace(/\/$/, '');
-  const frontendUrl = (process.env.FRONTEND_URL || backendUrl).replace(/\/$/, '');
-  // compute api base from incoming request so clients receive an absolute backend API URL
-  const apiBaseUrl  = `${proto}://${host}/api`;
+  const backendUrl  = normalizeUrl(process.env.BACKEND_URL || `${proto}://${host}`);
+  const frontendUrl = normalizeUrl(process.env.FRONTEND_URL || backendUrl);
+  // Use the configured backend URL when available so separate frontend/backend domains resolve correctly.
+  const apiBaseUrl  = `${backendUrl}/api`;
 
   if (!storeDomain) {
     return res.status(500).json({ error: 'Store domain not configured. Set SHOPIFY_STORE_DOMAIN in .env' });

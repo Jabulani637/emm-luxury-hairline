@@ -8,14 +8,25 @@ const PUBLIC_DIR = path.join(PROJECT_ROOT, 'public');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-// CORS — allow Vercel frontend, Render backend, and localhost dev
+
+function normalizeOrigin(value) {
+  if (!value) return value;
+  try {
+    return new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`).origin;
+  } catch (_) {
+    return value.replace(/\/$/, '');
+  }
+}
+
+// CORS — allow the production frontend/backend domains and localhost dev
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
-  process.env.FRONTEND_URL,
-  process.env.BACKEND_URL,
-  'https://emm-luxury-hairline.vercel.app',
-  'https://emm-luxury-hair.onrender.com',
+  'https://www.emmluxuryhair.com',
+  'https://emmluxuryhair.com',
+  'https://api.emmluxuryhair.com',
+  normalizeOrigin(process.env.FRONTEND_URL),
+  normalizeOrigin(process.env.BACKEND_URL),
 ].filter(Boolean);
 
 // Build CORS options that will echo the incoming Origin when it is allowed.

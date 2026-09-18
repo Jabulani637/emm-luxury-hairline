@@ -17,6 +17,16 @@ async function resolveApiBase() {
   // Already resolved this session
   if (_apiBase) return _apiBase;
 
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname.toLowerCase();
+    if (hostname === 'api.emmluxuryhair.com' || hostname === 'www.emmluxuryhair.com' || hostname === 'emmluxuryhair.com') {
+      _apiBase = 'https://api.emmluxuryhair.com/api';
+      window.APP_CONFIG = window.APP_CONFIG || {};
+      window.APP_CONFIG.API_BASE_URL = _apiBase;
+      return _apiBase;
+    }
+  }
+
   // Inline APP_CONFIG set before this script loaded (legacy support)
   if (typeof window !== 'undefined' && window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) {
     _apiBase = window.APP_CONFIG.API_BASE_URL.replace(/\/$/, '');
