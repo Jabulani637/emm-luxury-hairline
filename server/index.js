@@ -2,12 +2,18 @@
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 const PROJECT_ROOT = path.join(__dirname, '..');
 const PUBLIC_DIR = path.join(PROJECT_ROOT, 'public');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Behind Render's reverse proxy — trust the first hop so rate limiting
+// keys on the real client IP (X-Forwarded-For) rather than the proxy IP.
+app.set('trust proxy', 1);
 
 function normalizeOrigin(value) {
   if (!value) return value;
@@ -67,6 +73,36 @@ if (process.env.CORS_ALLOW_ALL === '1') {
 app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
 
+// Security headers. CSP is intentionally disabled: the frontend uses inline
+// scripts (the APP_CONFIG block), which the default policy would block.
+// Revisit once inline scripts are externalized / output is escaped.
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
+
+// General limiter for the JSON API. /webhooks is excluded on purpose —
+// those are HMAC-verified requests from Shopify and must not be throttled.
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please try again later.' },
+});
+
+// Strict limiter for the unauthenticated custom-order endpoint, which
+// creates Shopify draft orders. Keeps abuse/spam from flooding the admin.
+const customOrderLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many custom order requests. Please try again later.' },
+});
+
+app.use('/api', apiLimiter);
+
 app.use(express.json());
 // Serve the public folder from the project root
 app.use(express.static(PUBLIC_DIR));
@@ -79,7 +115,7 @@ app.use('/webhooks', require('./routes/webhooks'));
 app.use('/api/checkout', require('./routes/checkout'));
 app.use('/api/config', require('./routes/config'));
 app.use('/api/countries', require('./routes/countries'));
-app.use('/api/custom-orders', require('./routes/customOrders'));
+app.use('/api/custom-orders', customOrderLimiter, require('./routes/customOrders'));
 
 // Health check route
 app.get('/api/health', (req, res) => {

@@ -26,3 +26,7 @@ Thumbs.db
 # Build output
 dist/
 build/
+
+# Customer data (PII) — never commit real orders or webhook payloads
+data/
+server/data/
