@@ -1,0 +1,306 @@
+/**
+ * Smoke test — starts the real server on a throwaway port and checks that every
+ * route answers with the shape it should. Read-only: it never POSTs, so it
+ * cannot leave test rows in the review or order stores.
+ *
+ *   npm run smoke
+ */
+const fs = require('fs');
+const http = require('http');
+const path = require('path');
+const { spawn } = require('child_process');
+
+const PORT = Number(process.env.SMOKE_PORT || 4399);
+const BASE = `http://127.0.0.1:${PORT}`;
+// The one hostname the whole site is meant to live on. Everything else in the
+// emmluxuryhair.com family has to hand its traffic over to this one.
+const CANONICAL = 'https://www.emmluxuryhair.com';
+const ROOT = path.join(__dirname, '..', '..');
+
+const results = [];
+function check(name, pass, detail) {
+  results.push({ name, pass, detail });
+  console.log(`${pass ? '  ok  ' : ' FAIL '} ${name}${pass || !detail ? '' : ` — ${detail}`}`);
+}
+
+async function get(pathname, redirect = 'manual') {
+  const res = await fetch(BASE + pathname, { redirect });
+  const body = await res.text();
+  return { status: res.status, body, headers: res.headers, location: res.headers.get('location') };
+}
+
+/**
+ * fetch() ignores a caller-supplied Host header, so the only way to test the
+ * per-hostname behaviour is to open the socket and name the host by hand.
+ */
+function hostRequest(host, pathname) {
+  return new Promise((resolve, reject) => {
+    const req = http.request(
+      { host: '127.0.0.1', port: PORT, path: pathname, method: 'GET', headers: { host } },
+      res => {
+        let body = '';
+        res.setEncoding('utf8');
+        res.on('data', chunk => { body += chunk; });
+        res.on('end', () => resolve({ status: res.statusCode, location: res.headers.location, body }));
+      },
+    );
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+/**
+ * Script tags the browser would execute inline. CSP does not block data blocks
+ * like JSON-LD, so only an executable type without a src is a violation.
+ */
+function inlineExecutableScripts(html) {
+  const jsTypes = /^(?:text|application)\/(?:java|ecma)script|module$/i;
+  const found = [];
+  for (const m of html.matchAll(/<script([^>]*)>/gi)) {
+    const attrs = m[1];
+    if (/\ssrc=/i.test(attrs)) continue;
+    const type = (attrs.match(/\stype="([^"]*)"/i) || [])[1];
+    if (type && !jsTypes.test(type)) continue;
+    found.push(type || 'no type attribute');
+  }
+  return found;
+}
+
+/** Same-origin files a document points at: src/href attributes and srcset entries. */
+function referencedFiles(text) {
+  const urls = new Set();
+  for (const m of text.matchAll(/(?:src|href)="(\/[^"?#][^"]*)"/g)) {
+    if (!/^\/(api|webhooks)\//.test(m[1])) urls.add(m[1]);
+  }
+  for (const m of text.matchAll(/srcset="([^"]+)"/g)) {
+    for (const entry of m[1].split(',')) {
+      const u = entry.trim().split(/\s+/)[0];
+      if (u.startsWith('/')) urls.add(u);
+    }
+  }
+  for (const m of text.matchAll(/url\(['"]?(\/[^'"")\s?#][^'")]*)['"]?\)/g)) urls.add(m[1]);
+  return [...urls];
+}
+
+/**
+ * Every asset a page loads has to exist. This is the check that catches a
+ * repointed logo or a deleted sprite leaving a live reference behind.
+ */
+async function assets(name, pathname) {
+  const r = await get(pathname);
+  const refs = referencedFiles(r.body);
+  for (const css of referencedFiles(r.body).filter(u => u.endsWith('.css'))) {
+    refs.push(...referencedFiles((await get(css)).body));
+  }
+  const broken = [];
+  for (const ref of new Set(refs)) {
+    const res = await fetch(BASE + ref, { method: 'GET', redirect: 'manual' });
+    if (res.status !== 200) broken.push(`${ref} → ${res.status}`);
+  }
+  check(`${name} loads only assets that exist`, broken.length === 0,
+    broken.slice(0, 4).join(', ') || `${new Set(refs).size} refs`);
+}
+
+/**
+ * A BOM ahead of a file's first character is invisible and survives every
+ * request-level check below, because fetch's text() decoder strips it. On disk
+ * it is a real defect: in an .env it hides the first variable from the parser.
+ */
+function checkNoBom() {
+  const TEXT_EXTENSIONS = ['.html', '.css', '.js', '.json', '.md', '.txt', '.xml'];
+  const found = [];
+  const inspect = full => {
+    const fd = fs.openSync(full, 'r');
+    const head = Buffer.alloc(3);
+    const read = fs.readSync(fd, head, 0, 3, 0);
+    fs.closeSync(fd);
+    if (read === 3 && head[0] === 0xef && head[1] === 0xbb && head[2] === 0xbf) {
+      found.push(path.relative(ROOT, full));
+    }
+  };
+  const walk = dir => {
+    if (!fs.existsSync(dir)) return;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) { walk(full); continue; }
+      if (TEXT_EXTENSIONS.some(ext => full.endsWith(ext))) inspect(full);
+    }
+  };
+  walk(path.join(ROOT, 'public'));
+  walk(path.join(ROOT, 'server'));
+  for (const dotenv of ['.env', '.env.example']) {
+    const full = path.join(ROOT, dotenv);
+    if (fs.existsSync(full)) inspect(full);
+  }
+  check('no source or env file starts with a UTF-8 BOM', found.length === 0, found.slice(0, 5).join(', '));
+}
+
+/** A storefront page: real header and footer, no unexpanded partial markers. */
+async function page(name, pathname, { navActive = false, drawer = true, jsonLd = false } = {}) {
+  const r = await get(pathname);
+  const problems = [];
+  if (r.status !== 200) problems.push(`status ${r.status}`);
+  if (/<!--#|<!--if\s|<!--\/if/.test(r.body)) problems.push('unexpanded partial marker');
+  if (!/<header id="main-header"/.test(r.body)) problems.push('no header');
+  if (!/<footer>/.test(r.body)) problems.push('no footer');
+  if (drawer !== /id="cart-drawer"/.test(r.body)) problems.push(`drawer ${drawer ? 'missing' : 'present'}`);
+  if (navActive !== /nav-link active/.test(r.body)) problems.push('header highlight mismatch');
+  if (jsonLd && !/application\/ld\+json/.test(r.body)) problems.push('no JSON-LD block');
+  const inline = inlineExecutableScripts(r.body);
+  if (inline.length) problems.push(`inline <script> (${inline[0]}) — the CSP will block it`);
+  const csp = r.headers.get('content-security-policy') || '';
+  if (!/script-src 'self'/.test(csp)) problems.push('no script-src CSP');
+  check(name, problems.length === 0, problems.join(', '));
+}
+
+async function redirect(name, pathname, to) {
+  const r = await get(pathname);
+  check(name, r.status === 301 && r.location === to, `got ${r.status} ${r.location || ''}`);
+}
+
+async function json(name, pathname, assert) {
+  let r;
+  try {
+    const res = await fetch(BASE + pathname);
+    r = { status: res.status, data: await res.json().catch(() => null) };
+  } catch (err) {
+    check(name, false, err.message);
+    return;
+  }
+  const detail = assert(r.status, r.data);
+  check(name, detail === true, typeof detail === 'string' ? detail : 'assertion failed');
+}
+
+async function run(server) {
+  checkNoBom();
+
+  for (const [name, pathname, opts] of [
+    ['homepage', '/', { navActive: true, jsonLd: true }],
+    ['cart page', '/cart', { drawer: false }],
+    ['collection page', '/collections/all', { navActive: true }],
+    ['about page', '/pages/about', {}],
+    ['reviews page', '/pages/reviews', {}],
+    ['custom order page', '/pages/custom-order', { navActive: true }],
+    ['contact page', '/pages/contact', { navActive: true }],
+    ['shipping page', '/pages/shipping-returns', {}],
+    ['faqs page', '/pages/faqs', {}],
+    ['wig care page', '/pages/wig-care', {}],
+  ]) {
+    await page(name, pathname, opts);
+  }
+
+  // Product pages can only be checked against the live catalogue, since the
+  // handles live in Shopify rather than in this repo.
+  const catalogue = await (await fetch(`${BASE}/api/products?first=1`)).json();
+  const handle = catalogue.products && catalogue.products[0] && catalogue.products[0].handle;
+
+  await assets('homepage', '/');
+  if (handle) await assets('product page', `/products/${handle}`);
+
+  if (handle) {
+    await page(`product page (${handle})`, `/products/${handle}`, { navActive: true, jsonLd: true });
+    const r = await get(`/products/${handle}`);
+    check('product page canonical points at itself',
+      new RegExp(`rel="canonical" href="${BASE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/products/${handle}"`).test(r.body)
+        || /rel="canonical"[^>]*\/products\//.test(r.body),
+      'no self-referencing canonical');
+  } else {
+    check('product page reachable', false, 'the catalogue returned no products');
+  }
+
+  const admin = await hostRequest(new URL(CANONICAL).hostname, '/admin/reviews');
+  check('admin page is a bare shell', admin.status === 200
+    && !/<header id="main-header"/.test(admin.body)
+    && /noindex/.test(admin.body), `status ${admin.status}`);
+  await assets('admin shell', '/admin/reviews');
+
+  await redirect('legacy /index.html 301s', '/index.html', '/');
+  await redirect('legacy /pages/faqs.html 301s', '/pages/faqs.html', '/pages/faqs');
+  await redirect('legacy product url 301s', '/products/product.html?handle=blue-blonde', '/products/blue-blonde');
+
+  // One hostname per site: anything else in the domain family hands its
+  // documents over, so ranking signals are not split across duplicates.
+  for (const [label, host, pathname] of [
+    ['apex', 'emmluxuryhair.com', '/'],
+    ['api subdomain', 'api.emmluxuryhair.com', '/pages/faqs'],
+  ]) {
+    const r = await hostRequest(host, pathname);
+    check(`${label} 301s to the canonical host`,
+      r.status === 301 && r.location === CANONICAL + pathname, `got ${r.status} ${r.location || ''}`);
+    const api = await hostRequest(host, '/api/health');
+    check(`${label} keeps serving the API itself`, api.status === 200, `status ${api.status}`);
+  }
+  const canonical = await hostRequest(new URL(CANONICAL).hostname, '/pages/faqs');
+  check('canonical host serves pages without redirecting', canonical.status === 200, `status ${canonical.status}`);
+
+  const missing = await get('/definitely-not-a-page');
+  check('unknown URL 404s instead of showing the homepage', missing.status === 404, `status ${missing.status}`);
+
+  const robots = await get('/robots.txt');
+  check('robots.txt', robots.status === 200 && /Sitemap:/.test(robots.body) && /Disallow: \/admin/.test(robots.body), `status ${robots.status}`);
+  const sitemap = await get('/sitemap.xml');
+  check('sitemap.xml lists pages', sitemap.status === 200
+    && /<urlset/.test(sitemap.body)
+    && sitemap.body.includes('/pages/about'), `status ${sitemap.status}`);
+
+  await json('/api/health reports readiness', '/api/health', (s, d) => (
+    s === 200 && d && d.readiness && typeof d.readiness.storefrontConfigured === 'boolean'
+  ));
+  await json('/api/config exposes no secret', '/api/config', (s, d) => (
+    s === 200 && d && d.apiBaseUrl && !JSON.stringify(d).includes('shpat_') && !JSON.stringify(d).includes('sb_secret_')
+  ));
+  await json('/api/products returns a catalogue', '/api/products?first=3', (s, d) => (
+    s === 200 && Array.isArray(d.products) ? true : `status ${s}, ${JSON.stringify(d && d.error || d).slice(0, 120)}`
+  ));
+  await json('/api/reviews returns only approved rows', '/api/reviews', (s, d) => (
+    s === 200 && Array.isArray(d.reviews) && !JSON.stringify(d).includes('pending')
+  ));
+  await json('/api/admin/reviews refuses an unauthenticated caller', '/api/admin/reviews', (s, d) => (
+    s === 401 || s === 403 ? true : `status ${s}`
+  ));
+  await json('unknown API endpoint 404s as JSON', '/api/nope', (s, d) => (
+    s === 404 && d && d.error === 'Unknown API endpoint'
+  ));
+}
+
+async function main() {
+  const server = spawn(process.execPath, [path.join(ROOT, 'server', 'index.js')], {
+    cwd: ROOT,
+    env: {
+      ...process.env,
+      NODE_ENV: 'development',
+      PORT: String(PORT),
+      // Pin the canonical origin the same way production does, instead of
+      // inheriting a developer machine's localhost FRONTEND_URL from .env.
+      FRONTEND_URL: process.env.FRONTEND_URL || CANONICAL,
+      ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'smoke-test-only',
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let serverLog = '';
+  server.stdout.on('data', d => { serverLog += d; });
+  server.stderr.on('data', d => { serverLog += d; });
+
+  try {
+    for (let i = 0; i < 60; i++) {
+      try {
+        if ((await fetch(`${BASE}/api/health`)).ok) break;
+      } catch (_) { /* not listening yet */ }
+      await new Promise(r => setTimeout(r, 250));
+    }
+    await run(server);
+  } catch (err) {
+    check('smoke run completed', false, err.message);
+  } finally {
+    server.kill();
+  }
+
+  const failed = results.filter(r => !r.pass);
+  console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
+  if (failed.length) {
+    console.log('\nserver log:\n' + serverLog.slice(-2500));
+    process.exit(1);
+  }
+}
+
+main();

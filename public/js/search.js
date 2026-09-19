@@ -218,7 +218,7 @@
       return `
         <a
           class="search-result-card"
-          href="/products/product.html?handle=${encodeURIComponent(p.handle)}"
+          href="/products/${encodeURIComponent(p.handle)}"
           role="option"
           aria-selected="false"
           tabindex="-1"

@@ -132,18 +132,26 @@
     overflow: hidden;
 }
 
-/* Each slide fills the container via background-image — works for both SVG and JPG */
+/* Each slide is a <picture> holding one responsive <img>. The slide is only the
+   positioned box; the image inside is what crops and covers. The crossfade and
+   Ken Burns stay on the slide so hero-slideshow.js need not know about it. */
 .hero-slide {
     position: absolute;
     inset: 0;
+    display: block;
     opacity: 0;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
     /* crossfade */
     transition: opacity 1.4s ease-in-out, transform 8s ease-out;
     transform: scale(1.06);   /* start slightly zoomed in */
     will-change: opacity, transform;
+}
+
+.hero-slide img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
 }
 
 /* Active slide fades in and zooms to normal size — Ken Burns effect */
@@ -378,10 +386,19 @@
     padding: 56px 32px;
 }
 
+/* Three cards: on the two-column mobile grid the last one takes the whole
+   second row rather than sitting alone at half width. */
+.value-props .prop:last-child {
+    grid-column: 1 / -1;
+}
+
 @media (min-width: 1024px) {
     .value-props {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         padding: 56px 64px;
+    }
+    .value-props .prop:last-child {
+        grid-column: auto;
     }
 }
 
@@ -437,20 +454,31 @@
     justify-content: flex-end;
 }
 
+/* One 42x28 cell per badge, all twelve in a single 504x28 strip. The strip is
+   transparent and each logo is drawn with a 3px margin inside its cell, which is
+   what the white tile below shows through — padding on the element itself would
+   move the background origin and misalign every position. */
 .payment-icons .payment-icon {
     width: 42px;
     height: 28px;
     display: inline-block;
-    background: #fff;
+    background: #fff url('/assets/payment-icons.png') no-repeat 0 0;
+    background-size: 504px 28px;
     border-radius: 4px;
-    padding: 2px 3px;
-    overflow: hidden;
 }
 
-.payment-icons .payment-icon use {
-    width: 100%;
-    height: 100%;
-}
+.payment-icon--visa      { background-position:   0 0; }
+.payment-icon--mastercard{ background-position: -42px 0; }
+.payment-icon--amex      { background-position: -84px 0; }
+.payment-icon--paypal    { background-position: -126px 0; }
+.payment-icon--applepay  { background-position: -168px 0; }
+.payment-icon--googlepay { background-position: -210px 0; }
+.payment-icon--shop      { background-position: -252px 0; }
+.payment-icon--unionpay  { background-position: -294px 0; }
+.payment-icon--klarna    { background-position: -336px 0; }
+.payment-icon--maestro   { background-position: -378px 0; }
+.payment-icon--diners    { background-position: -420px 0; }
+.payment-icon--discover  { background-position: -462px 0; }
 
 
 /* ----------------------------
@@ -2557,4 +2585,319 @@ textarea.form-input {
     .contact-form-section { padding: 20px; }
     .contact-about { padding: 32px 20px; }
     .contact-about-values { grid-template-columns: 1fr; }
+}
+
+/* ── Customer reviews ─────────────────────────────────────────────────
+   Replaces the old hard-coded testimonial block. Cards reuse .testimonial
+   on the homepage; everything else here is specific to real reviews.   */
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.testimonial-grid--reviews {
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+    .testimonial-grid--reviews {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.reviews-more {
+    margin-top: 8px;
+    text-align: center;
+}
+
+.review-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 24px 40px;
+    padding: 24px;
+    background: var(--blush-light);
+    border-radius: 8px;
+}
+
+.review-summary__score {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.review-summary__avg {
+    font-family: Georgia, serif;
+    font-size: 42px;
+    line-height: 1;
+    color: var(--burgundy);
+}
+
+.review-summary__stars {
+    color: var(--gold);
+    font-size: 18px;
+    letter-spacing: 2px;
+}
+
+.review-summary__from {
+    font-size: 12px;
+    color: var(--ink-muted);
+}
+
+.review-summary__bars {
+    flex: 1 1 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.review-summary__row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--ink-muted);
+}
+
+.review-summary__label {
+    width: 28px;
+}
+
+.review-summary__track {
+    flex: 1;
+    height: 6px;
+    background: rgba(122, 43, 63, 0.12);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.review-summary__fill {
+    display: block;
+    height: 100%;
+    background: var(--gold);
+    border-radius: 999px;
+}
+
+.review-summary__count {
+    width: 24px;
+    text-align: right;
+}
+
+.review-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+@media (min-width: 760px) {
+    .review-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.review-card {
+    padding: 24px;
+    background: var(--white);
+    border: 1px solid rgba(122, 43, 63, 0.1);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.review-card__stars {
+    color: var(--gold);
+    font-size: 15px;
+    letter-spacing: 2px;
+    margin: 0;
+}
+
+.review-card__title {
+    font-family: Georgia, serif;
+    font-size: 18px;
+    color: var(--burgundy);
+    margin: 0;
+}
+
+.review-card__body {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--ink);
+    margin: 0;
+}
+
+.review-card__product {
+    font-size: 12px;
+    color: var(--burgundy);
+    text-decoration: underline;
+}
+
+.review-card__meta {
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin: 4px 0 0;
+}
+
+.review-card__meta strong {
+    color: var(--ink);
+}
+
+.reviews-empty {
+    font-size: 14px;
+    color: var(--ink-muted);
+    text-align: center;
+    padding: 24px 0;
+}
+
+.reviews-filter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 340px;
+}
+
+.reviews-filter label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+    white-space: nowrap;
+}
+
+.review-form-host {
+    scroll-margin-top: 80px;
+}
+
+.review-form {
+    padding: 28px;
+    background: var(--blush-light);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.review-form h3 {
+    font-family: Georgia, serif;
+    font-size: 24px;
+    color: var(--burgundy);
+    margin: 0 0 4px;
+}
+
+.review-form__note {
+    font-size: 13px;
+    color: var(--ink-muted);
+    line-height: 1.6;
+    margin: 0 0 12px;
+}
+
+.review-form__hp {
+    position: absolute !important;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.star-picker {
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 6px;
+}
+
+.star-option {
+    cursor: pointer;
+    font-size: 26px;
+    line-height: 1;
+    color: rgba(122, 43, 63, 0.25);
+    transition: color 0.12s ease;
+}
+
+.star-option input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+}
+
+.star-option.is-on,
+.star-option:hover {
+    color: var(--gold);
+}
+
+.star-option input:focus-visible + span {
+    outline: 2px solid var(--burgundy);
+    outline-offset: 3px;
+    border-radius: 2px;
+}
+
+.star-picker__hint {
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin: 6px 0 0;
+}
+
+/* The homepage strip sits inside .testimonials, which is already a centred
+   flex column; display:contents lets its own children join that layout. */
+#home-reviews {
+    display: contents;
+}
+
+.reviews-section {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin: 48px auto 0;
+}
+
+.reviews-section h2 {
+    font-family: Georgia, serif;
+    font-size: 28px;
+    color: var(--burgundy);
+    margin: 0;
+}
+
+@media (min-width: 1024px) {
+    .reviews-section h2 { font-size: 36px; }
+}
+
+.reviews-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.page-reviews .page-content-heading p {
+    font-size: 15px;
+    color: var(--ink-muted);
+    line-height: 1.7;
+    max-width: 60ch;
+}
+
+/* Sits below the .product-page grid, so it repeats that frame's width and
+   padding rather than inheriting a grid track. */
+#product-reviews {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 32px 56px;
+}
+
+@media (min-width: 1024px) {
+    #product-reviews {
+        padding: 0 64px 80px;
+    }
 }

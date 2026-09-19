@@ -1,5 +1,6 @@
 const express = require('express');
 const router  = express.Router();
+const { shopDomain, storefrontToken, adminToken } = require('../shopify/env');
 
 function normalizeUrl(value) {
   if (!value) return value;
@@ -10,7 +11,10 @@ function normalizeUrl(value) {
 /**
  * GET /api/config
  * Exposes public, non-sensitive configuration to the frontend.
- * All values come from environment variables — never hardcoded.
+ *
+ * The Storefront token is designed to be public (it is scope-limited to reading
+ * published catalogue data), which is why it can be returned here. The Admin
+ * token never leaves the server — it is reported as a readiness boolean only.
  *
  * Frontend reads this once on load to know:
  *   - storeDomain / publicAccessToken  → Shopify Storefront API
@@ -18,8 +22,8 @@ function normalizeUrl(value) {
  *   - frontendUrl                      → base URL of the site (for redirects etc.)
  */
 router.get('/', (req, res) => {
-  const storeDomain       = process.env.SHOPIFY_STORE_DOMAIN || process.env.SHOPIFY_STORE || '';
-  const publicAccessToken = process.env.SHOPIFY_PUBLIC_ACCESS_TOKEN || '';
+  const storeDomain       = shopDomain() || '';
+  const publicAccessToken = storefrontToken() || '';
 
   // Resolve backend URL:
   //   1. BACKEND_URL env var (set this in .env or Render dashboard)
@@ -45,7 +49,7 @@ router.get('/', (req, res) => {
     status: {
       storeConfigured:      !!storeDomain,
       tokenConfigured:      !!publicAccessToken,
-      adminConfigured:      !!(process.env.SHOPIFY_ADMIN_ACCESS_TOKEN),
+      adminConfigured:      !!adminToken(),
     },
   });
 });

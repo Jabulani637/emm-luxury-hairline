@@ -1,20 +1,23 @@
 const { shopifyFetch } = require('../client');
 
+// Storefront API 2025-10 reorganised localization data:
+//   - country list moved from `shop.countries` to the root `localization.availableCountries`
+//   - shop currency moved from `shop.currencyCode` to the root `paymentSettings.currencyCode`
+//   - `Country` now exposes `isoCode` (was `code`) and NO LONGER exposes `provinces`,
+//     so the shipping estimator's province dropdown degrades to country-only. That is a
+//     Storefront API limitation, not a bug here; provinces would need another data source.
 const GET_COUNTRIES_QUERY = `
   query shopCountries {
     shop {
       name
+    }
+    paymentSettings {
       currencyCode
-      countries(first: 250) {
-        availableShippingRates {
-          count
-        }
-        code
+    }
+    localization {
+      availableCountries {
+        isoCode
         name
-        provinces(first: 250) {
-          code
-          name
-        }
       }
     }
   }
@@ -23,21 +26,21 @@ const GET_COUNTRIES_QUERY = `
 async function getCountries() {
   const data = await shopifyFetch({
     query: GET_COUNTRIES_QUERY,
+    bucket: 'catalog',
+    ttlSeconds: 3600,
   });
 
-  const shop = data.shop || {};
-  const countries = (shop.countries || []).map(c => ({
-    code: c.code,
+  const availableCountries = data.localization?.availableCountries || [];
+
+  const countries = availableCountries.map(c => ({
+    code: c.isoCode,
     name: c.name,
-    provinces: (c.provinces || []).map(p => ({
-      code: p.code,
-      name: p.name,
-    })),
+    provinces: [],
   }));
 
   return {
-    shopName: shop.name || '',
-    shopCurrency: shop.currencyCode || 'GBP',
+    shopName: data.shop?.name || '',
+    shopCurrency: data.paymentSettings?.currencyCode || 'GBP',
     countries,
   };
 }

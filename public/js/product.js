@@ -3,14 +3,14 @@
  * Handles product loading, variant selection, and add to cart
  */
 
+
 document.addEventListener('DOMContentLoaded', async () => {
   const productPage = document.getElementById('product-page');
   
   if (!productPage) return;
 
   // Get product handle from URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const handle = urlParams.get('handle');
+  const handle = window.handleFromLocation('products');
 
   if (!handle) {
     productPage.innerHTML = '<div class="error-message"><p>Product handle not specified.</p></div>';
@@ -40,7 +40,7 @@ function renderProduct(product) {
   const compareAtPrice = product.variants?.[0]?.compareAtPrice;
 
   const imagesHtml = images.length > 0 
-    ? images.map(img => `<img src="${img.url}" alt="${img.altText || product.title}" loading="lazy">`).join('')
+    ? images.map(img => `<img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.altText || product.title)}" loading="lazy">`).join('')
     : '<div class="no-image">No images available</div>';
 
   const compareAtPriceHtml = compareAtPrice
@@ -56,12 +56,12 @@ function renderProduct(product) {
       ${imagesHtml}
     </div>
     <div class="product-info">
-      <h1>${product.title}</h1>
+      <h1>${escapeHtml(product.title)}</h1>
       <div class="product-price" id="product-price-display">
         <span class="current-price">${formatPrice(price.amount, price.currencyCode)}</span>
         ${compareAtPriceHtml}
       </div>
-      <p class="product-description">${product.description || ''}</p>
+      <p class="product-description">${escapeHtml(product.description || '')}</p>
       
       <div class="hair-quality-info">
         <h3>Hair Quality Options</h3>
@@ -106,11 +106,11 @@ function createVariantSelector(option, variants) {
   
   return `
     <div class="variant-option">
-      <label>${option.name}</label>
+      <label>${escapeHtml(option.name)}</label>
       <div class="variant-buttons">
         ${values.map(value => `
-          <button class="variant-button" data-option="${option.name}" data-value="${value}">
-            ${value}
+          <button class="variant-button" data-option="${escapeHtml(option.name)}" data-value="${escapeHtml(value)}">
+            ${escapeHtml(value)}
           </button>
         `).join('')}
       </div>
@@ -277,7 +277,7 @@ function goToCustomOrder(product, variant) {
     if (price) params.set('price', price);
     if (currency) params.set('currency', currency);
   }
-  window.location.href = '/pages/custom-order.html?' + params.toString();
+  window.location.href = '/pages/custom-order?' + params.toString();
 }
 
 function openCartDrawerIfAvailable() {

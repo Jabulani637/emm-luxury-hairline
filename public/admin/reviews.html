@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Review moderation — Emm Luxury Hair</title>
+  <!-- Operator-only screen: never indexed, and holds no data until the signed
+       cookie is presented to /api/admin/reviews. -->
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --burgundy: #7A2B3F;
+      --burgundy-dark: #4A1A28;
+      --blush: #F8E8E6;
+      --blush-light: #FCF5F3;
+      --gold: #D4A854;
+      --ink: #1A1214;
+      --ink-muted: #6B5E5E;
+      --line: rgba(122, 43, 63, .14);
+      --ok: #1F6B45;
+      --warn: #9A6B00;
+      --bad: #9B2C2C;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Jost', 'Segoe UI', system-ui, sans-serif;
+      background: var(--blush-light);
+      color: var(--ink);
+      font-size: 15px;
+    }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 24px 16px 72px; }
+    h1 { font-family: Georgia, serif; font-size: 26px; color: var(--burgundy); margin: 0 0 4px; }
+    h2 { font-family: Georgia, serif; font-size: 19px; color: var(--burgundy); margin: 0 0 12px; }
+    .sub { color: var(--ink-muted); font-size: 13px; margin: 0 0 24px; }
+    .bar {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+      padding: 14px 16px; background: #fff; border: 1px solid var(--line);
+      border-radius: 8px; margin-bottom: 20px;
+    }
+    .bar form { margin: 0; }
+    .grow { flex: 1; }
+    .badge {
+      font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+      padding: 4px 9px; border-radius: 999px; background: var(--blush); color: var(--burgundy-dark);
+    }
+    .badge--warn { background: #FFF4D6; color: var(--warn); }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+    label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-muted); margin-bottom: 6px; }
+    input[type=text], input[type=password], input[type=number], select, textarea {
+      width: 100%; padding: 10px 12px; font: inherit; color: var(--ink);
+      border: 1px solid var(--line); border-radius: 6px; background: #fff;
+    }
+    textarea { resize: vertical; }
+    button {
+      font: inherit; font-size: 13px; cursor: pointer; padding: 8px 14px;
+      border-radius: 6px; border: 1px solid var(--burgundy); background: #fff; color: var(--burgundy);
+    }
+    button:hover { background: var(--burgundy); color: var(--gold); }
+    button.primary { background: var(--burgundy); color: #fff; }
+    button.primary:hover { background: var(--burgundy-dark); }
+    button:disabled { opacity: .5; cursor: default; }
+    .grid2 { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    @media (min-width: 720px) { .grid2 { grid-template-columns: repeat(2, 1fr); } }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .tabs button[aria-selected=true] { background: var(--burgundy); color: #fff; }
+    .review { border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin-bottom: 14px; background: #fff; }
+    .review__top { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; font-size: 13px; color: var(--ink-muted); margin-bottom: 8px; }
+    .review__stars { color: var(--gold); letter-spacing: 2px; }
+    .review__author { color: var(--ink); font-weight: 600; }
+    .review__title { font-family: Georgia, serif; font-size: 16px; margin: 0 0 6px; color: var(--burgundy); }
+    .review__body { margin: 0 0 12px; line-height: 1.6; white-space: pre-wrap; }
+    .review__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .status { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+    .status--pending { color: var(--warn); }
+    .status--approved { color: var(--ok); }
+    .status--rejected { color: var(--bad); }
+    .msg { padding: 10px 12px; border-radius: 6px; font-size: 13px; margin: 0 0 16px; }
+    .msg--err { background: #FDECEC; color: var(--bad); }
+    .msg--ok { background: #EAF6EE; color: var(--ok); }
+    .empty { color: var(--ink-muted); font-size: 14px; padding: 8px 0 16px; }
+    .editor { margin-top: 12px; padding: 14px; border: 1px dashed var(--line); border-radius: 6px; background: var(--blush-light); }
+    .editor textarea { margin-bottom: 10px; }
+    .hidden { display: none !important; }
+    a { color: var(--burgundy); }
+    .note { font-size: 12px; color: var(--ink-muted); line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Review moderation</h1>
+    <p class="sub">Nothing a customer submits is visible on the site until you approve it here. Approved reviews appear on the homepage, the product page and <a href="/pages/reviews" target="_blank" rel="noopener">/pages/reviews</a>.</p>
+
+    <div id="notice" class="msg msg--err hidden"></div>
+
+    <!-- ── Sign in ─────────────────────────────────────────────────── -->
+    <section id="login" class="card hidden">
+      <h2>Sign in</h2>
+      <p class="note">Enter the store admin password to open the queue.</p>
+      <form id="login-form" class="bar" style="border:0;padding:0;margin-top:12px">
+        <div class="grow">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="primary">Sign in</button>
+      </form>
+    </section>
+
+    <!-- ── Queue ───────────────────────────────────────────────────── -->
+    <div id="queue" class="hidden">
+      <div class="bar">
+        <strong>Emm Luxury Hair</strong>
+        <span id="backend" class="badge">storage: —</span>
+        <span id="counts" class="badge">—</span>
+        <span class="grow"></span>
+        <a href="/api/admin/reviews/export" download><button type="button">Download approved (.json)</button></a>
+        <button type="button" id="reload">Refresh</button>
+        <button type="button" id="logout">Sign out</button>
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="Filter by status">
+        <button type="button" role="tab" data-status="pending" aria-selected="true">Pending</button>
+        <button type="button" role="tab" data-status="approved" aria-selected="false">Approved</button>
+        <button type="button" role="tab" data-status="rejected" aria-selected="false">Rejected</button>
+        <button type="button" role="tab" data-status="" aria-selected="false">All</button>
+      </div>
+
+      <div id="list"></div>
+
+      <section class="card">
+        <h2>Paste a review</h2>
+        <p class="note">For reviews customers sent you by WhatsApp, email or Instagram instead of using the form. This publishes immediately — you are the one approving it.</p>
+        <form id="paste-form">
+          <div class="grid2">
+            <div>
+              <label for="p-author">Customer name *</label>
+              <input id="p-author" name="author" type="text" maxlength="80" required placeholder="e.g. Amara O.">
+            </div>
+            <div>
+              <label for="p-country">Country</label>
+              <input id="p-country" name="country" type="text" maxlength="60" placeholder="Optional">
+            </div>
+            <div>
+              <label for="p-rating">Star rating *</label>
+              <select id="p-rating" name="rating" required>
+                <option value="5">5 — Excellent</option>
+                <option value="4">4 — Very good</option>
+                <option value="3">3 — Average</option>
+                <option value="2">2 — Poor</option>
+                <option value="1">1 — Very poor</option>
+              </select>
+            </div>
+            <div>
+              <label for="p-product">Product *</label>
+              <select id="p-product" name="productHandle" required></select>
+            </div>
+            <div>
+              <label for="p-title">Headline</label>
+              <input id="p-title" name="title" type="text" maxlength="120" placeholder="Optional">
+            </div>
+            <div>
+              <label for="p-status">Publish as</label>
+              <select id="p-status" name="status">
+                <option value="approved">Approved — shows on the site</option>
+                <option value="pending">Pending — keep out of sight</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:14px">
+            <label for="p-body">Review text *</label>
+            <textarea id="p-body" name="body" rows="4" maxlength="2000" required placeholder="Paste their words. Keep them honest — do not embellish or invent detail."></textarea>
+          </div>
+          <div class="bar" style="border:0;padding:14px 0 0;margin:0">
+            <span class="grow"></span>
+            <button type="submit" class="primary" id="paste-submit">Add review</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <script src="/js/admin-reviews.js"></script>
+</body>
+</html>

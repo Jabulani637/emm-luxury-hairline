@@ -1,11 +1,14 @@
 const express = require('express');
 const router = express.Router();
+const { serverError } = require('../errorResponse');
 const { cartCreate } = require('../shopify/mutations/cartCreate');
 const { cartLinesAdd } = require('../shopify/mutations/cartLinesAdd');
 const { cartLinesUpdate } = require('../shopify/mutations/cartLinesUpdate');
 const { cartDeliveryAddressUpdate } = require('../shopify/mutations/cartDeliveryAddressUpdate');
 const { cartDeliveryOptionsUpdate } = require('../shopify/mutations/cartDeliveryOptionsUpdate');
 const { cartBuyerIdentityUpdate } = require('../shopify/mutations/cartBuyerIdentityUpdate');
+
+const CART_FAILED = 'We could not update your cart. Please check your connection and try again.';
 
 // POST /api/cart/create - Create a new cart
 router.post('/create', async (req, res) => {
@@ -19,8 +22,7 @@ router.post('/create', async (req, res) => {
     const cart = await cartCreate(variantId, quantity || 1);
     res.json({ cart });
   } catch (error) {
-    console.error('[API] Cart create error:', error);
-    res.status(500).json({ error: error.message });
+    serverError(res, 'cart.create', error, CART_FAILED);
   }
 });
 
@@ -36,8 +38,7 @@ router.post('/add', async (req, res) => {
     const cart = await cartLinesAdd(cartId, lines);
     res.json({ cart });
   } catch (error) {
-    console.error('[API] Cart add error:', error);
-    res.status(500).json({ error: error.message });
+    serverError(res, 'cart.add', error, CART_FAILED);
   }
 });
 
@@ -53,8 +54,7 @@ router.post('/update', async (req, res) => {
     const cart = await cartLinesUpdate(cartId, lines);
     res.json({ cart });
   } catch (error) {
-    console.error('[API] Cart update error:', error);
-    res.status(500).json({ error: error.message });
+    serverError(res, 'cart.update', error, CART_FAILED);
   }
 });
 
@@ -73,8 +73,7 @@ router.post('/delivery-address', async (req, res) => {
     const cart = await cartDeliveryAddressUpdate(cartId, address);
     res.json({ cart });
   } catch (error) {
-    console.error('[API] Cart delivery address error:', error);
-    res.status(500).json({ error: error.message });
+    serverError(res, 'cart.deliveryAddress', error, 'We could not calculate shipping for this address. Please try again.');
   }
 });
 
@@ -96,8 +95,7 @@ router.post('/delivery-options', async (req, res) => {
     const cart = await cartDeliveryOptionsUpdate(cartId, deliveryOptions);
     res.json({ cart });
   } catch (error) {
-    console.error('[API] Cart delivery options error:', error);
-    res.status(500).json({ error: error.message });
+    serverError(res, 'cart.deliveryOptions', error, 'We could not set your delivery option. Please try again.');
   }
 });
 
@@ -119,8 +117,9 @@ router.post('/buyer-identity', async (req, res) => {
     const cart = await cartBuyerIdentityUpdate(cartId, identity);
     res.json({ cart });
   } catch (error) {
-    console.error('[API] Cart buyer identity error:', error);
-    res.status(500).json({ error: error.message });
+    // Non-fatal for the shopper: checkout still opens, only the country
+    // pre-selection is affected, so this must not look like a hard failure.
+    serverError(res, 'cart.buyerIdentity', error, 'Checkout is ready — we could not pre-select your country.');
   }
 });
 

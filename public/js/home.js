@@ -3,6 +3,7 @@
  * Handles loading and displaying bestsellers
  */
 
+
 document.addEventListener('DOMContentLoaded', async () => {
   const bestsellersGrid = document.getElementById('bestsellers-grid');
   
@@ -25,92 +26,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   } catch (error) {
     console.error('[Home] Failed to load bestsellers:', error);
-    const errorMessage = error.message || 'Unknown error';
-    // Provide additional diagnostic info for local dev
-    try {
-      const resolved = await window.__resolveApiBase();
-      console.info('[Home] Resolved API base for diagnostics:', resolved);
-    } catch (e) {
-      console.info('[Home] Could not resolve API base for diagnostics');
-    }
     bestsellersGrid.innerHTML = `
       <div class="error-message" style="padding: 20px; background: #fee; border: 1px solid #fcc; border-radius: 8px; text-align: center;">
-        <p style="color: #c33; font-weight: 600;">Unable to load products</p>
-        <p style="color: #666; font-size: 14px; margin-top: 8px;">Error: ${errorMessage}</p>
-        <p style="color: #666; font-size: 12px; margin-top: 8px;">Please check your Shopify credentials in the .env file</p>
+        <p style="color: #c33; font-weight: 600;">We're having trouble loading products right now.</p>
+        <p style="color: #666; font-size: 14px; margin-top: 8px;">Please refresh the page or try again in a moment.</p>
       </div>
     `;
   }
 });
 
-function createProductCard(product) {
-  const image = product.images && product.images.length > 0 ? product.images[0] : null;
-  const price = product.priceRange?.minVariantPrice;
-  const isNew = product.tags && product.tags.includes('new');
-  const isBestseller = product.tags && product.tags.includes('bestseller');
-
-  const badges = [];
-  if (isNew) badges.push('<span class="product-badge gold">NEW</span>');
-  if (isBestseller) badges.push('<span class="product-badge burgundy">BESTSELLER</span>');
-
-  const variants = product.variants || [];
-  const firstAvailable = variants.find(v => v && v.availableForSale === true) || variants[0] || null;
-  const hasAnyAvailable = variants.some(v => v && v.availableForSale === true) || product.availableForSale === true;
-  const singleVariant = variants.length === 1;
-
-  let availabilityBadge = '';
-  if (!hasAnyAvailable) {
-    badges.push('<span class="product-badge product-badge--soldout">SOLD OUT</span>');
-    availabilityBadge = '<span class="card-availability sold-out-text">Out of stock</span>';
-  } else if (singleVariant) {
-    availabilityBadge = '<span class="card-availability in-stock">In stock</span>';
-  } else {
-    availabilityBadge = '<span class="card-availability multi-option">Multiple options</span>';
-  }
-
-  const imageHtml = image 
-    ? `<img src="${image.url}" alt="${image.altText || product.title}" loading="lazy">`
-    : '<div class="no-image">No image</div>';
-
-  // NOTE: data-* attribute values must NOT be encodeURIComponent'd — see collection.js for explanation.
-  const safeAttr = (val) => String(val || '').replace(/"/g, '&quot;');
-
-  let actionButton;
-  if (!hasAnyAvailable) {
-    actionButton = `<button type="button" class="btn btn-block btn-secondary card-soldout-btn"
-      data-handle="${safeAttr(product.handle)}"
-      data-title="${safeAttr(product.title)}"
-      data-variant-id="${safeAttr(firstAvailable && firstAvailable.id ? firstAvailable.id : '')}"
-      data-variant-title="${safeAttr(firstAvailable && firstAvailable.title ? firstAvailable.title : '')}"
-      data-price="${safeAttr(price && price.amount ? price.amount : '')}"
-      data-currency="${safeAttr(price && price.currencyCode ? price.currencyCode : '')}">Sold Out — Custom Order</button>`;
-  } else if (singleVariant && firstAvailable) {
-    actionButton = `<button type="button" class="btn btn-block btn-primary card-add-btn"
-      data-variant-id="${safeAttr(firstAvailable.id)}"
-      data-handle="${safeAttr(product.handle)}">Add to Cart</button>`;
-  } else {
-    actionButton = `<a href="/products/product.html?handle=${encodeURIComponent(product.handle || '')}" class="btn btn-block btn-primary card-select-options">Select Options</a>`;
-  }
-
-  return `
-    <div class="product-card-wrapper">
-      <a href="/products/product.html?handle=${encodeURIComponent(product.handle || '')}" class="product-card">
-        <div class="product-image">
-          ${imageHtml}
-          ${badges.join('')}
-        </div>
-        <div class="product-info">
-          <h3 class="product-title">${product.title}</h3>
-          <p class="product-price">${price ? formatPrice(price.amount, price.currencyCode) : ''}</p>
-          <p class="product-availability">${availabilityBadge}</p>
-        </div>
-      </a>
-      <div class="product-card-actions">
-        ${actionButton}
-      </div>
-    </div>
-  `;
-}
 
 document.addEventListener('DOMContentLoaded', function wireHomeCards() {
   const poll = () => {
@@ -182,7 +106,7 @@ function attachHomeCardHandlers() {
       if (btn.dataset.variantTitle) params.set('variantTitle', decodeURIComponent(btn.dataset.variantTitle));
       if (btn.dataset.price) params.set('price', decodeURIComponent(btn.dataset.price));
       if (btn.dataset.currency) params.set('currency', decodeURIComponent(btn.dataset.currency));
-      window.location.href = '/pages/custom-order.html?' + params.toString();
+      window.location.href = '/pages/custom-order?' + params.toString();
     });
   });
 }

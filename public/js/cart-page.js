@@ -233,11 +233,6 @@ function showShippingError(message) {
   errorBox.style.display = 'block';
 }
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
 
 function renderCartPage() {
   const cartItemsSection = document.getElementById('cart-items-section');
@@ -269,11 +264,11 @@ function renderCartPage() {
     return `
       <div class="cart-item">
         <div class="cart-item-image">
-          ${image ? `<img src="${image.url}" alt="${image.altText || merchandise.title || ''}">` : '<div class="no-image">No image</div>'}
+          ${image ? `<img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.altText || merchandise.title || '')}">` : '<div class="no-image">No image</div>'}
         </div>
         <div class="cart-item-details">
-          <p class="cart-item-title">${product?.title || 'Product'}</p>
-          <p class="cart-item-variant">${merchandise?.title || ''}</p>
+          <p class="cart-item-title">${escapeHtml(product?.title || 'Product')}</p>
+          <p class="cart-item-variant">${escapeHtml(merchandise?.title || '')}</p>
           <p class="cart-item-price">${formatPrice(merchandise?.price?.amount || 0, merchandise?.price?.currencyCode || 'GBP')}</p>
           <div class="cart-item-quantity">
             <button class="quantity-decrease" data-line-id="${safeId}" data-qty="${lineItem.quantity}">−</button>
@@ -367,34 +362,6 @@ function refreshTotalsDisplay() {
   }
 }
 
-/**
- * Converts Shopify's cart permalink URL (/cart/c/TOKEN) to the direct
- * checkout URL (/checkouts/cn/TOKEN) and appends skip_shop_pay=true
- * so it goes straight to the checkout form without being intercepted
- * by Shop Pay or redirecting to the storefront homepage.
- *
- * Input:  https://store.myshopify.com/cart/c/TOKEN?key=...
- * Output: https://store.myshopify.com/checkouts/cn/TOKEN?skip_shop_pay=true
- */
-function buildDirectCheckoutUrl(cartCheckoutUrl) {
-  try {
-    const url = new URL(cartCheckoutUrl);
-    // /cart/c/TOKEN → /checkouts/cn/TOKEN
-    const match = url.pathname.match(/^\/cart\/c\/([^/?]+)/);
-    if (match) {
-      url.pathname = '/checkouts/cn/' + match[1];
-    }
-    // Remove Shopify's internal tracking params that can cause redirects
-    url.searchParams.delete('_s');
-    url.searchParams.delete('_y');
-    // Force skip Shop Pay interception
-    url.searchParams.set('skip_shop_pay', 'true');
-    return url.toString();
-  } catch (_) {
-    // Fallback: use original URL unchanged
-    return cartCheckoutUrl;
-  }
-}
 
 let checkoutButtonAttached = false;
 function setupCheckoutButton() {

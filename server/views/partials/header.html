@@ -1,0 +1,73 @@
+<!-- Canonical site header. Every storefront page pulls this in with an include
+     marker naming itself: header active= names the current page (home, collections,
+     custom-order, contact) and cart=link makes the bag icon navigate to /cart on pages where the bag icon should navigate to
+     /cart instead of opening the drawer. server/partials.js does the expanding. -->
+    <header id="main-header">
+        <div class="announcement-bar">
+            <div class="announcement-track">
+                <span class="announcement-item">✦ Premium 100% Human Hair</span>
+                <span class="announcement-item">✦ Nationwide Delivery</span>
+                <span class="announcement-item">✦ New Arrivals Weekly</span>
+                <span class="announcement-item">✦ Ready to Ship</span>
+                <span class="announcement-item">✦ WhatsApp Us: +44 7836 618293</span>
+                <span class="announcement-item">✦ Premium 100% Human Hair</span>
+                <span class="announcement-item">✦ Nationwide Delivery</span>
+                <span class="announcement-item">✦ New Arrivals Weekly</span>
+                <span class="announcement-item">✦ Ready to Ship</span>
+                <span class="announcement-item">✦ WhatsApp Us: +44 7836 618293</span>
+            </div>
+        </div>
+        <div class="header-content">
+            <a href="/" class="logo">
+                <img src="/assets/logo-mark.png" alt="Emm Luxury Hair" width="40" height="40">
+                <span>Emm Luxury Hair</span>
+            </a>
+            <nav class="main-nav" role="navigation" aria-label="Main navigation">
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="/" class="nav-link<!--if active=home--> active<!--/if-->">Home</a></li>
+                    <li class="nav-item has-dropdown">
+                        <a href="/collections/all" class="nav-link<!--if active=collections--> active<!--/if-->" aria-haspopup="true" aria-expanded="false">Collection</a>
+                        <div class="dropdown" role="menu" aria-hidden="true">
+                            <ul class="dropdown-list">
+                                <li class="dropdown-item"><a href="/collections/all" class="dropdown-link">Product Catalogue</a></li>
+                                <li class="dropdown-item"><a href="/collections/new-arrivals" class="dropdown-link">New Arrival</a></li>
+                                <li class="dropdown-item"><a href="/collections/raw-hair" class="dropdown-link">Raw Hair</a></li>
+                                <li class="dropdown-item"><a href="/collections/ready-to-ship" class="dropdown-link">Ready to Ship</a></li>
+                                <li class="dropdown-item"><a href="/collections/melted-collection" class="dropdown-link">The Melted Collection</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="nav-item"><a href="/pages/custom-order" class="nav-link<!--if active=custom-order--> active<!--/if-->">Custom Order</a></li>
+                    <li class="nav-item"><a href="/pages/contact" class="nav-link<!--if active=contact--> active<!--/if-->">Contact</a></li>
+                </ul>
+            </nav>
+            <div class="header-actions">
+                <button class="search-btn" aria-label="Search">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </button>
+<!--if cart=drawer-->
+                <button class="cart-btn" aria-label="Shopping Cart">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="9" cy="21" r="1"></circle>
+                        <circle cx="20" cy="21" r="1"></circle>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                    <span id="cart-count">0</span>
+                </button>
+<!--/if-->
+<!--if cart=link-->
+                <a href="/cart" class="cart-btn" aria-label="Your bag">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="9" cy="21" r="1"></circle>
+                        <circle cx="20" cy="21" r="1"></circle>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                    <span id="cart-count">0</span>
+                </a>
+<!--/if-->
+            </div>
+        </div>
+    </header>

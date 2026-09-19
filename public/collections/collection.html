@@ -1,76 +1,17 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Collection — Emm Luxury Hair</title>
-    <link rel="icon" href="/assets/emm-luxury-hair-logo.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/assets/emm-luxury-hair-logo.svg">
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/components.css">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet"/>
 </head>
 <body>
-    <!-- Header -->
-    <header id="main-header">
-        <div class="announcement-bar">
-            <div class="announcement-track">
-                <span class="announcement-item">✦ Premium 100% Human Hair</span>
-                <span class="announcement-item">✦ Nationwide Delivery</span>
-                <span class="announcement-item">✦ New Arrivals Weekly</span>
-                <span class="announcement-item">✦ Ready to Ship</span>
-                <span class="announcement-item">✦ WhatsApp Us: +44 7836 618293</span>
-                <span class="announcement-item">✦ Premium 100% Human Hair</span>
-                <span class="announcement-item">✦ Nationwide Delivery</span>
-                <span class="announcement-item">✦ New Arrivals Weekly</span>
-                <span class="announcement-item">✦ Ready to Ship</span>
-                <span class="announcement-item">✦ WhatsApp Us: +44 7836 618293</span>
-            </div>
-        </div>
-        <div class="header-content">
-            <a href="/" class="logo">
-                <img src="/assets/emm-luxury-hair-logo.svg" alt="Emm Luxury Hair" width="40" height="40">
-                <span>Emm Luxury Hair</span>
-            </a>
-            <!-- Shopify integration: include the data-driven snippet in your theme:
-                 {% include 'header-nav' %}
-                 For local preview we provide a static fallback below. -->
-            <nav class="main-nav" role="navigation" aria-label="Main navigation">
-                <ul class="nav-list">
-                    <li class="nav-item"><a href="/" class="nav-link">Home</a></li>
-                    <li class="nav-item has-dropdown">
-                        <a href="/collections/collection.html?handle=all" class="nav-link" aria-haspopup="true" aria-expanded="false">Collection</a>
-                        <div class="dropdown" role="menu" aria-hidden="true">
-                            <ul class="dropdown-list">
-                                <li class="dropdown-item"><a href="/collections/collection.html?handle=all" class="dropdown-link">Product Catalogue</a></li>
-                                <li class="dropdown-item"><a href="/collections/collection.html?handle=new-arrivals" class="dropdown-link">New Arrival</a></li>
-                                <li class="dropdown-item"><a href="/collections/collection.html?handle=raw-hair" class="dropdown-link">Raw Hair</a></li>
-                                <li class="dropdown-item"><a href="/collections/collection.html?handle=ready-to-ship" class="dropdown-link">Ready to Ship</a></li>
-                                <li class="dropdown-item"><a href="/collections/collection.html?handle=melted-collection" class="dropdown-link">The Melted Collection</a></li>
-                            </ul>
-                        </div>
-                    </li>
-                    <li class="nav-item"><a href="/pages/contact.html" class="nav-link">Contact</a></li>
-                </ul>
-            </nav>
-            <div class="header-actions">
-                <button class="search-btn" aria-label="Search">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                </button>
-                <button class="cart-btn" aria-label="Shopping Cart">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="9" cy="21" r="1"></circle>
-                        <circle cx="20" cy="21" r="1"></circle>
-                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                    </svg>
-                    <span id="cart-count">0</span>
-                </button>
-            </div>
-        </div>
-    </header>
+    <!--#header active=collections cart=drawer-->
 
     <!-- Main Content -->
     <main>
@@ -79,146 +20,16 @@
         </div>
     </main>
 
-    <script>
-      // Provide a safe APP_CONFIG.API_BASE_URL for pages opened from file:// or from static hosts.
-      (function() {
-        try {
-          var h = (window.location.hostname || '').toLowerCase();
-          var apiBase;
-          if (h === 'localhost' || h === '127.0.0.1') {
-            apiBase = 'http://localhost:3000/api';
-          } else if (h === 'www.emmluxuryhair.com' || h === 'emmluxuryhair.com' || h === 'api.emmluxuryhair.com') {
-            apiBase = 'https://api.emmluxuryhair.com/api';
-          } else if (h.indexOf('vercel.app') !== -1 || h.indexOf('emm-luxury-hairline') !== -1) {
-            apiBase = 'https://api.emmluxuryhair.com/api';
-          } else if (window.location.protocol === 'file:') {
-            apiBase = 'http://localhost:3000/api';
-          } else {
-            apiBase = window.location.origin + '/api';
-          }
-          window.APP_CONFIG = window.APP_CONFIG || {};
-          window.APP_CONFIG.API_BASE_URL = apiBase;
-        } catch (e) { /* no-op */ }
-      })();
-    </script>
 
-    <!-- Footer -->
-    <footer>
-        <div class="footer-content">
-            <div class="footer-brand">
-                <div class="logo">
-                    <img src="/assets/emm-luxury-hair-logo.svg" alt="Emm Luxury Hair" width="44" height="44">
-                    <span>Emm Luxury Hair</span>
-                </div>
-                <p>Premium human hair and lace-front wigs crafted for comfort, confidence, and a flawless natural look.</p>
-                <div class="social-links">
-                    <a href="#" class="social-link" aria-label="Instagram" target="_blank" rel="noopener noreferrer">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                            <circle cx="12" cy="12" r="4.5"></circle>
-                            <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"></circle>
-                        </svg>
-                    </a>
-                    <a href="#" class="social-link" aria-label="TikTok" target="_blank" rel="noopener noreferrer">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/>
-                        </svg>
-                    </a>
-                    <a href="#" class="social-link" aria-label="Facebook" target="_blank" rel="noopener noreferrer">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
-                        </svg>
-                    </a>
-                    <a href="https://wa.me/447836618293" class="social-link" aria-label="WhatsApp" target="_blank" rel="noopener noreferrer">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.558 4.12 1.529 5.845L.057 23.882l6.204-1.448A11.944 11.944 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 0 1-5.006-1.372l-.36-.214-3.681.859.925-3.583-.234-.369A9.818 9.818 0 0 1 2.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/>
-                        </svg>
-                    </a>
-                </div>
-            </div>
-            <div class="footer-links">
-                <h3>Shop</h3>
-                <a href="/collections/collection.html?handle=new-arrivals">New Arrivals</a>
-                <a href="/collections/collection.html?handle=melted-collection">The Melted Collection</a>
-                <a href="/collections/collection.html?handle=ready-to-ship">Ready to Ship</a>
-                <a href="/collections/collection.html?handle=raw-hair">Raw Hair (Exclusive)</a>
-                <a href="/collections/collection.html?handle=virgin-hair">Virgin Hair (Premium)</a>
-            </div>
-            <div class="footer-links">
-                <h3>Support</h3>
-                <a href="https://wa.me/447836618293" target="_blank" rel="noopener noreferrer">Contact Us</a>
-                <a href="/pages/shipping-returns">Shipping & Returns</a>
-                <a href="/pages/faqs.html">FAQs</a>
-                <a href="/pages/wig-care.html">Wig Care Tips</a>
-            </div>
-            <div class="footer-links">
-                <h3>Company</h3>
-                <a href="/pages/about">About Us</a>
-                <a href="/pages/reviews">Reviews</a>
-            </div>
-        </div>
-                <div class="footer-bottom">
-            <p>&copy; 2026 Emm Luxury Hair. All rights reserved.</p>
-            <div class="payment-icons" aria-label="Accepted payment methods">
-                <svg class="payment-icon" role="img" aria-label="Visa"><use href="/assets/sprite.svg#visa"></use></svg>
-                <svg class="payment-icon" role="img" aria-label="Mastercard"><use href="/assets/sprite.svg#mastercard"></use></svg>
-                <svg class="payment-icon" role="img" aria-label="American Express"><use href="/assets/sprite.svg#amex"></use></svg>
-                <svg class="payment-icon" role="img" aria-label="PayPal"><use href="/assets/sprite.svg#paypal"></use></svg>
-                <svg class="payment-icon" role="img" aria-label="Apple Pay"><use href="/assets/sprite.svg#applepay"></use></svg>
-                <svg class="payment-icon" role="img" aria-label="Google Pay"><use href="/assets/sprite.svg#googlepay"></use></svg>
-                <svg class="payment-icon" role="img" aria-label="Shop Pay"><use href="/assets/sprite.svg#shop"></use></svg>
-                <svg class="payment-icon" role="img" aria-label="UnionPay"><use href="/assets/sprite.svg#unionpay"></use></svg>
-                <svg class="payment-icon" role="img" aria-label="Klarna"><use href="/assets/sprite.svg#klarna"></use></svg>
-                <svg class="payment-icon" role="img" aria-label="Maestro"><use href="/assets/sprite.svg#maestro"></use></svg>
-                <svg class="payment-icon" role="img" aria-label="Diners Club"><use href="/assets/sprite.svg#diners"></use></svg>
-                <svg class="payment-icon" role="img" aria-label="Discover"><use href="/assets/sprite.svg#discover"></use></svg>
-            </div>
-        </div>
-        </div>
-    </footer>
+    <!--#footer active=collections-->
 
-    <!-- Cart Drawer -->
-    <div id="cart-drawer" class="cart-drawer">
-        <div class="cart-overlay"></div>
-        <div class="cart-content">
-            <div class="cart-header">
-                <h2>Your Bag</h2>
-                <button class="close-cart">×</button>
-            </div>
-            <div class="cart-items" id="cart-items">
-                <p class="empty-cart">Your bag is empty</p>
-            </div>
-            <div class="cart-footer">
-                <div class="cart-total">
-                    <span>Total</span>
-                    <span id="cart-total">$0.00</span>
-                </div>
-                <button class="btn btn-primary checkout-btn">Checkout</button>
-            </div>
-        </div>
-    </div>    <script>
-      (function() {
-        var h = (window.location.hostname || '').toLowerCase();
-        var apiBase;
-        if (h === 'localhost' || h === '127.0.0.1') {
-          apiBase = 'http://localhost:3000/api';
-        } else if (h === 'www.emmluxuryhair.com' || h === 'emmluxuryhair.com' || h === 'api.emmluxuryhair.com') {
-          apiBase = 'https://api.emmluxuryhair.com/api';
-        } else if (h.indexOf('vercel.app') !== -1 || h.indexOf('emm-luxury-hairline') !== -1) {
-          apiBase = 'https://api.emmluxuryhair.com/api';
-        } else {
-          apiBase = window.location.origin + '/api';
-        }
-        window.APP_CONFIG = window.APP_CONFIG || {};
-        window.APP_CONFIG.API_BASE_URL = apiBase;
-      })();
-    </script>
-    <script src="/js/api.js"></script>
-    <script src="/js/cart.js"></script>
-    <script src="/js/collection.js"></script>
-    <script src="/js/search.js"></script>
-    <script src="/js/header-nav.js"></script>
-    <script src="/js/nav.js"></script>
+    <!--#cart-drawer-->
+<script src="/js/api.js" defer></script>
+    <script src="/js/shared.js" defer></script>
+    <script src="/js/cart.js" defer></script>
+    <script src="/js/collection.js" defer></script>
+    <script src="/js/search.js" defer></script>
+    <script src="/js/header-nav.js" defer></script>
+    <script src="/js/nav.js" defer></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 /**
  * Hero Slideshow
  * Cycles .hero-slide elements every 8 seconds with crossfade + Ken Burns.
- * Uses background-image on each slide (works for SVG and JPG alike).
+ * Only the .active class is touched; which image loads is the browser's call.
  */
 (function () {
   'use strict';

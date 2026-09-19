@@ -1,52 +1,27 @@
 const axios = require('axios');
+const { shopDomain, adminToken, CANONICAL, LEGACY } = require('../env');
 
-const SHOP = process.env.SHOPIFY_STORE || process.env.SHOPIFY_STORE_DOMAIN;
+const SHOP = shopDomain();
+const ADMIN_TOKEN = adminToken();
+const ADMIN_API_VERSION = process.env.SHOPIFY_ADMIN_API_VERSION || '2025-10';
 
-function looksLikeAdminToken(t) {
-  if (typeof t !== 'string') return false;
-  const s = t.trim();
-  if (!s) return false;
-  return /^(shpat_|shpss_|shpca_|sh_)/i.test(s);
-}
-
-function resolveAdminToken() {
-  const directCandidates = [
-    process.env.SHOPIFY_ADMIN_ACCESS_TOKEN,
-    process.env.SHOPIFY_ADMIN_TOKEN,
-    process.env.SHOPIFY_ADMIN_API_TOKEN,
-  ];
-  for (const t of directCandidates) {
-    if (typeof t !== 'string') continue;
-    const trimmed = t.trim();
-    if (!trimmed) continue;
-    return trimmed;
-  }
-  const fallbackCandidates = [
-    process.env.SHOPIFY_STOREFRONT_TOKEN,
-    process.env.STOREFRONT_TOKEN,
-  ];
-  for (const t of fallbackCandidates) {
-    if (looksLikeAdminToken(t)) {
-      return t.trim();
-    }
-  }
-  return null;
-}
-
-const ADMIN_TOKEN = resolveAdminToken();
-const ADMIN_API_VERSION = process.env.SHOPIFY_ADMIN_API_VERSION || '2024-10';
-
-let warned = false;
 function isConfigured() {
   return Boolean(SHOP && ADMIN_TOKEN);
 }
 
 function statusLog() {
   if (!SHOP) {
-    return { ok: false, reason: 'SHOPIFY_STORE / SHOPIFY_STORE_DOMAIN env var missing' };
+    return { ok: false, reason: `${CANONICAL.shop} env var missing` };
   }
   if (!ADMIN_TOKEN) {
-    return { ok: false, reason: 'SHOPIFY_ADMIN_ACCESS_TOKEN env var missing' };
+    const set = [CANONICAL.admin, ...LEGACY.admin]
+      .some(name => typeof process.env[name] === 'string' && process.env[name].trim());
+    return {
+      ok: false,
+      reason: set
+        ? `${CANONICAL.admin} is set to a placeholder or unusable value, not a real shpat_ token`
+        : `${CANONICAL.admin} env var missing`,
+    };
   }
   return { ok: true, shop: SHOP, apiVersion: ADMIN_API_VERSION };
 }
@@ -79,8 +54,7 @@ async function shopifyAdminFetch({ query, variables = {} }) {
   const s = statusLog();
   if (s.ok) {
     console.log(`✅ Shopify Admin API: store=${s.shop} apiVersion=${s.apiVersion}`);
-  } else if (!warned) {
-    warned = true;
+  } else {
     console.warn(`⚠️  Shopify Admin API not configured — custom orders will be saved to JSON only. Reason: ${s.reason}`);
   }
 })();

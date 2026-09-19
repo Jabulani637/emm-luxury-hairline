@@ -1,0 +1,22 @@
+<!-- Slide-out bag, pulled in with an include marker named cart-drawer. nav.js
+     only wires the drawer up on pages that contain it, so every storefront page
+     needs it for the header bag button to do anything. -->
+    <div id="cart-drawer" class="cart-drawer">
+        <div class="cart-overlay"></div>
+        <div class="cart-content">
+            <div class="cart-header">
+                <h2>Your Bag</h2>
+                <button class="close-cart">×</button>
+            </div>
+            <div class="cart-items" id="cart-items">
+                <p class="empty-cart">Your bag is empty</p>
+            </div>
+            <div class="cart-footer">
+                <div class="cart-total">
+                    <span>Total</span>
+                    <span id="cart-total">£0.00</span>
+                </div>
+                <button class="btn btn-primary checkout-btn">Checkout</button>
+            </div>
+        </div>
+    </div>

@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm install
+    buildCommand: npm install --omit=dev
     startCommand: npm start
     autoDeploy: true
     envVars:
@@ -12,14 +12,53 @@ services:
         value: production
       - key: PORT
         value: "10000"
+
+      # -- Shopify Storefront API (reads products, builds carts) ------------
       - key: SHOPIFY_STORE_DOMAIN
         sync: false
       - key: SHOPIFY_PUBLIC_ACCESS_TOKEN
         sync: false
       - key: SHOPIFY_STOREFRONT_API_VERSION
         value: "2025-10"
-      - key: SHOPIFY_STOREFRONT_TOKEN
+
+      # -- Shopify Admin API (writes custom orders + contact enquiries) -----
+      # Without this variable production silently stops creating draft orders,
+      # which is how custom orders went missing.
+      - key: SHOPIFY_ADMIN_ACCESS_TOKEN
         sync: false
+      - key: SHOPIFY_ADMIN_API_VERSION
+        value: "2025-10"
+
+      # -- Webhook HMAC verification ---------------------------------------
+      # Must be the custom app's Client Secret.
       - key: WEBHOOK_SECRET
         sync: false
-    healthCheckPath: /api/health
+
+      # -- URLs ------------------------------------------------------------
+      # The frontend resolves /api from GET /api/config, so these decide
+      # everything. BACKEND_URL must be the public https origin of THIS service.
+      - key: BACKEND_URL
+        value: "https://api.emmluxuryhair.com"
+      - key: FRONTEND_URL
+        value: "https://www.emmluxuryhair.com"
+
+      # -- Catalog cache ---------------------------------------------------
+      - key: CACHE_TTL_SECONDS
+        value: "300"
+
+      # -- Customer reviews ------------------------------------------------
+      # Without these, approved reviews live in data/reviews/reviews.json on
+      # this container, and Render deletes that file on every deploy.
+      - key: SUPABASE_URL
+        sync: false
+      # The sb_secret_/service-role key. Server-side only — it must never be
+      # referenced from public frontend code.
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: SUPABASE_REVIEWS_TABLE
+        value: "product_reviews"
+
+      # Gates /admin/reviews and the moderation API. Left unset, the queue
+      # refuses every request instead of falling open.
+      - key: ADMIN_PASSWORD
+        sync: false

@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           ${priceHtml}
           <p class="requested-status"><span class="product-badge product-badge--soldout">SOLD OUT</span></p>
           <p class="requested-note">This specific variant is currently out of stock. Complete the form so we can source or custom-make it for you.</p>
-          ${prefill.productHandle ? `<a class="requested-link" href="/products/product.html?handle=${encodeURIComponent(prefill.productHandle)}">View product page →</a>` : ''}
+          ${prefill.productHandle ? `<a class="requested-link" href="/products/${encodeURIComponent(prefill.productHandle)}">View product page →</a>` : ''}
         </div>
       `;
       if (byId('f-desired-style')) byId('f-desired-style').placeholder = prefill.productTitle;
@@ -147,8 +147,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function submitCustomOrder(payload) {
-  const apiBase = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || '/api';
-  const endpoint = apiBase.replace(/\/$/, '') + '/custom-orders';
+  const base = window.__resolveApiBase ? await window.__resolveApiBase() : '/api';
+  const endpoint = `${base.replace(/\/$/, '')}/custom-orders`;
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -204,9 +204,3 @@ function sanitize(s, max) {
   return s.trim().slice(0, max || 500).replace(/[\x00-\x1F\x7F]/g, '');
 }
 
-function escapeHtml(str) {
-  if (typeof str !== 'string') return '';
-  const d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
-}

@@ -64,6 +64,7 @@ async function getCollection(handle, first = 24) {
   const data = await shopifyFetch({
     query: GET_COLLECTION_QUERY,
     variables: { handle, first },
+    bucket: 'catalog',
   });
 
   if (!data.collection) {
