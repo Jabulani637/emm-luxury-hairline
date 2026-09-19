@@ -48,3 +48,33 @@ revoke all on table public.product_reviews from authenticated;
 -- the schema cache", the Data API is not exposing this schema: dashboard ->
 -- Project Settings -> API -> "Exposed schemas in the Data API" must include
 -- `public`. Then restart the API (Settings -> API -> Restart Data API).
+
+
+-- -----------------------------------------------------------------------------
+-- Newsletter signups
+--
+-- Written by POST /api/subscribers on the storefront server. There is no read
+-- endpoint and no admin page for this table: a subscriber list is customer PII,
+-- so the only way to see it is this dashboard (Table Editor -> email_subscribers).
+-- Nothing is emailed to these addresses yet.
+--
+-- The server lowercases and trims every address before storing it, which is what
+-- makes this unique constraint actually catch a repeat signup — Postgres
+-- compares text exactly, so 'A@B.com' and 'a@b.com' would be two rows otherwise.
+-- -----------------------------------------------------------------------------
+
+create table if not exists public.email_subscribers (
+  id          bigint generated always as identity primary key,
+  created_at  timestamptz not null default now(),
+  email       text        not null unique
+                          check (char_length(email) between 6 and 254
+                                 and email !~ '[[:space:],;]')
+);
+
+comment on table public.email_subscribers is
+  'Newsletter addresses from the storefront. Server writes only, with the secret key. Nothing is emailed to them yet.';
+
+alter table public.email_subscribers enable row level security;
+
+revoke all on table public.email_subscribers from anon;
+revoke all on table public.email_subscribers from authenticated;

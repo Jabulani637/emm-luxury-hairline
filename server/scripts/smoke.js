@@ -1,7 +1,7 @@
 /**
  * Smoke test — starts the real server on a throwaway port and checks that every
- * route answers with the shape it should. Read-only: it never POSTs, so it
- * cannot leave test rows in the review or order stores.
+ * route answers with the shape it should. It writes nothing: the one POST it
+ * makes sends an address that fails validation, so no row reaches any store.
  *
  *   npm run smoke
  */
@@ -256,6 +256,39 @@ function checkPaymentStrip() {
 }
 
 /**
+ * The newsletter box discards addresses silently: an unnamed input, a missing
+ * script tag or an unmounted route each leave the form looking identical and
+ * saving nothing. This walks the whole chain, markup to table.
+ */
+function checkNewsletter() {
+  const read = (...parts) => fs.readFileSync(path.join(ROOT, ...parts), 'utf8');
+  const pageHtml = read('server', 'views', 'pages', 'index.html');
+  const script = read('public', 'js', 'newsletter.js');
+  const api = read('public', 'js', 'api.js');
+  const mounted = read('server', 'index.js');
+  const store = read('server', 'subscribers', 'store.js');
+  const schema = read('supabase', 'schema.sql');
+
+  const problems = [];
+  const table = (store.match(/SUPABASE_SUBSCRIBERS_TABLE \|\| '([^']+)'/) || [, ''])[1];
+  if (!/name="email"/.test(pageHtml)) problems.push('the email input has no name, so it submits nothing');
+  if (!/class="newsletter-hp"/.test(pageHtml)) problems.push('the honeypot field is gone, so the endpoint has nothing to reject bots with');
+  if (!/class="newsletter-note/.test(pageHtml)) problems.push('no status element, so a failed signup is silent');
+  if (!/src="\/js\/newsletter\.js"/.test(pageHtml)) problems.push('the page does not load newsletter.js');
+  if (!/addEventListener\('submit'/.test(script)) problems.push('newsletter.js does not intercept submit, so the page reloads and the address goes into the URL');
+  if (!/\/subscribers/.test(api)) problems.push('api.js never calls /subscribers');
+  if (!/app\.use\('\/api\/subscribers'/.test(mounted)) problems.push('POST /api/subscribers is not mounted');
+  if (!table) problems.push('the subscribers store names no default table');
+  else if (!new RegExp(`create table if not exists public\\.${table}`).test(schema)) {
+    problems.push(`the store writes to ${table}, which supabase/schema.sql never creates`);
+  }
+  if (/15% Off/i.test(pageHtml)) problems.push('the page promises a 15% discount no code in this repo can issue');
+
+  check('newsletter signup chain (form, script, route, table)',
+    problems.length === 0, problems.slice(0, 4).join(', ') || 'markup through to the Supabase table all line up');
+}
+
+/**
  * Below 1024px the header nav is reachable only through the hamburger, and
  * the wiring runs across four files: the partial holds the button and the
  * panel, main.css and components.css reveal them, header-nav.js ties them
@@ -338,10 +371,28 @@ async function json(name, pathname, assert) {
   check(name, detail === true, typeof detail === 'string' ? detail : 'assertion failed');
 }
 
+async function postJson(name, pathname, payload, assert) {
+  let r;
+  try {
+    const res = await fetch(BASE + pathname, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    r = { status: res.status, data: await res.json().catch(() => null) };
+  } catch (err) {
+    check(name, false, err.message);
+    return;
+  }
+  const detail = assert(r.status, r.data);
+  check(name, detail === true, typeof detail === 'string' ? detail : 'assertion failed');
+}
+
 async function run(server) {
   checkNoBom();
   checkBakedPages();
   checkPaymentStrip();
+  checkNewsletter();
   checkMobileNav();
 
   for (const [name, pathname, opts] of [
@@ -434,6 +485,16 @@ async function run(server) {
   await json('/api/admin/reviews refuses an unauthenticated caller', '/api/admin/reviews', (s, d) => (
     s === 401 || s === 403 ? true : `status ${s}`
   ));
+
+  // A subscriber list is PII, so it must have no read side at all — and a
+  // malformed address has to fail validation before anything is stored.
+  await json('/api/subscribers has no read endpoint', '/api/subscribers', (s, d) => (
+    s === 404 && d && d.error === 'Unknown API endpoint'
+  ));
+  await postJson('/api/subscribers rejects a malformed address', '/api/subscribers', { email: 'not-an-address' }, (s, d) => (
+    s === 400 && d && d.error ? true : `status ${s}, ${JSON.stringify(d || {}).slice(0, 120)}`
+  ));
+
   await json('unknown API endpoint 404s as JSON', '/api/nope', (s, d) => (
     s === 404 && d && d.error === 'Unknown API endpoint'
   ));

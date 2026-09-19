@@ -670,6 +670,23 @@
     white-space: nowrap;
 }
 
+/* Bot trap. Off-screen rather than display:none, which naive bots treat as a
+   field to skip; a real visitor never sees it and never tabs into it. */
+.newsletter-hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* The note carries .form-status once it has something to say. Empty, it would
+   otherwise sit in the section's flex gap as blank space. */
+.newsletter-note:empty {
+    display: none;
+}
+
 /* ── Cart Drawer ──────────────────────────────────────────────────────────── */
 .cart-drawer {
     position: fixed;

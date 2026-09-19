@@ -172,10 +172,16 @@ const contactAPI = {
   submit: (payload) => apiFetch('/contact', { method: 'POST', body: JSON.stringify(payload) }),
 };
 
+const subscribersAPI = {
+  subscribe: (email, honeypot) =>
+    apiFetch('/subscribers', { method: 'POST', body: JSON.stringify({ email, website: honeypot }) }),
+};
+
 /* ── Expose globals ───────────────────────────────────────────────────── */
 window.productsAPI    = productsAPI;
 window.collectionsAPI = collectionsAPI;
 window.cartAPI        = cartAPI;
 window.countriesAPI   = countriesAPI;
 window.contactAPI     = contactAPI;
+window.subscribersAPI = subscribersAPI;
 window.__resolveApiBase = resolveApiBase; // for debugging

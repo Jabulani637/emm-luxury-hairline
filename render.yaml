@@ -46,7 +46,7 @@ services:
       - key: CACHE_TTL_SECONDS
         value: "300"
 
-      # -- Customer reviews ------------------------------------------------
+      # -- Customer reviews and newsletter signups --------------------------
       # Without these, approved reviews live in data/reviews/reviews.json on
       # this container, and Render deletes that file on every deploy.
       - key: SUPABASE_URL
@@ -57,6 +57,8 @@ services:
         sync: false
       - key: SUPABASE_REVIEWS_TABLE
         value: "product_reviews"
+      - key: SUPABASE_SUBSCRIBERS_TABLE
+        value: "email_subscribers"
 
       # Gates /admin/reviews and the moderation API. Left unset, the queue
       # refuses every request instead of falling open.

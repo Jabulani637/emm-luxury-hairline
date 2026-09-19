@@ -88,8 +88,16 @@ module.exports = {
     return { rows, total };
   },
 
-  async insert(table, rows, { representation = true } = {}) {
-    const prefer = representation ? 'return=representation' : 'return=minimal';
+  /**
+   * `upsert` adds PostgREST's merge-duplicates resolution, which needs a unique
+   * constraint on the table and turns a repeat insert into an update in the same
+   * request — one round trip, and no conflict error to translate.
+   */
+  async insert(table, rows, { representation = true, upsert = false } = {}) {
+    const prefer = [
+      representation ? 'return=representation' : 'return=minimal',
+      upsert ? 'resolution=merge-duplicates' : null,
+    ].filter(Boolean).join(',');
     const { rows: out } = await request(table, { method: 'POST', data: rows, prefer });
     return out;
   },

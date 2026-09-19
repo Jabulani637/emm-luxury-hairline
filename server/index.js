@@ -15,6 +15,7 @@ const { isStorefrontConfigured } = require('./shopify/client');
 const { shopDomain } = require('./shopify/env');
 const { isConfigured } = require('./envFlags');
 const reviewsStore = require('./reviews/store');
+const subscribers = require('./subscribers/store');
 const supabaseClient = require('./db/supabase');
 const adminAuth = require('./adminAuth');
 
@@ -208,6 +209,7 @@ app.use('/api/countries', require('./routes/countries'));
 app.use('/api/custom-orders', formSubmitLimiter, require('./routes/customOrders'));
 app.use('/api/contact', formSubmitLimiter, require('./routes/contact'));
 app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/subscribers', require('./routes/subscribers'));
 app.use('/api/admin/reviews', require('./routes/adminReviews'));
 
 // Health / readiness check. Booleans only — never expose secrets or PII here.
@@ -220,6 +222,7 @@ app.get('/api/health', (req, res) => {
       adminConfigured: isAdminConfigured(),
       webhookSecretConfigured: isConfigured(process.env.WEBHOOK_SECRET),
       reviewsBackend: reviewsStore.backend(),
+      subscribersBackend: subscribers.backend(),
       moderationEnabled: adminAuth.enabled(),
       cacheEntries: cache.stats().size,
     },
@@ -270,6 +273,7 @@ const server = app.listen(PORT, () => {
   if (!admin.ok) problems.push(`${admin.reason} — custom orders and contact enquiries CANNOT reach Shopify.`);
   if (!isConfigured(process.env.WEBHOOK_SECRET)) problems.push('WEBHOOK_SECRET is missing or still a placeholder — every Shopify webhook delivery will be rejected. Set it to your custom app\'s Client Secret.');
   if (reviewsStore.backend() !== 'supabase') problems.push(`Reviews are being written to data/reviews/reviews.json, which Render deletes on every deploy — ${supabaseClient.configError() || 'check SUPABASE_URL and SUPABASE_SECRET_KEY'}`);
+  if (subscribers.backend() !== 'supabase') problems.push(`Newsletter signups are being written to data/subscribers/subscribers.json, which Render deletes on every deploy — ${supabaseClient.configError() || 'check SUPABASE_URL and SUPABASE_SECRET_KEY'}`);
   if (!adminAuth.enabled()) problems.push('ADMIN_PASSWORD is not set — the review moderation queue is switched off, so no submitted review can ever be approved.');
 
   if (problems.length) {
