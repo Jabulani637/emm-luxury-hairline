@@ -547,78 +547,25 @@
     color: #ffffff; /* white text on pill */
 }
 
-/* Dropdown card */
-.main-nav .dropdown {
-    position: absolute;
-    left: 0;
-    top: calc(100% + 12px);
-    min-width: 220px;
-    background: #ffffff;
-    border-radius: 12px; /* requested */
-    box-shadow: 0 8px 24px rgba(16, 16, 16, 0.08);
-    padding: 12px;
-    visibility: hidden;
-    opacity: 0;
-    transform: translateY(-6px);
-    transition: opacity 180ms ease, transform 180ms ease, visibility 180ms;
-    z-index: 60;
-}
-
-.main-nav .nav-item.has-dropdown:focus-within .dropdown,
-.main-nav .nav-item.has-dropdown:hover .dropdown,
-.main-nav .nav-item.has-dropdown.open .dropdown {
-    visibility: visible;
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.main-nav .dropdown-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.main-nav .dropdown-link {
-    display: block;
-    padding: 8px 12px;
-    border-radius: 8px;
-    color: var(--ink);
-    text-decoration: none;
-    transition: background 140ms ease, color 140ms ease;
-}
-
-.main-nav .dropdown-link:hover,
-.main-nav .dropdown-link:focus {
-    background: rgba(91,46,28,0.06); /* light tint */
-}
-
-/* Responsive: ensure dropdowns are full-width in small viewports if needed */
-@media (max-width: 768px) {
+/* Small screens: the nav is the slide-in panel main.css positions, so the
+   list becomes a vertical stack of full-width tap targets. */
+@media (max-width: 1023px) {
     .main-nav .nav-list {
         flex-direction: column;
-        gap: 0;
+        align-items: stretch;
+        gap: 4px;
     }
-    .main-nav .dropdown {
-        position: relative;
-        top: 0;
-        left: 0;
-        transform: none;
-        visibility: visible;
-        opacity: 1;
-        box-shadow: none;
-        padding-left: 8px;
-        padding-right: 8px;
-        display: none; /* will be toggled via JS to avoid interfering with existing mobile drawer */
+
+    .main-nav .nav-item {
+        width: 100%;
     }
-    .main-nav .nav-item.open .dropdown {
+
+    .main-nav .nav-link {
         display: block;
+        padding: 14px 12px;
+        font-size: 16px;
     }
 }
-
-/* Ensure animations use visibility not display for smooth effect */
 
 
 @media (min-width: 1024px) {

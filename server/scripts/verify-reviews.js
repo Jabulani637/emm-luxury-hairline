@@ -4,6 +4,8 @@
  * Writes one probe row and deletes it again, so it proves read, insert and
  * delete rights rather than just network reachability.
  */
+require('dotenv').config({ path: require('path').join(__dirname, '..', '..', '.env') });
+
 const store = require('../reviews/store');
 const supabase = require('../db/supabase');
 
@@ -49,7 +51,13 @@ async function main() {
   const after = await store.getById(created.id);
   if (after) throw new Error('probe row survived deletion');
 
-  console.log('\n✅ Review store is working.');
+  if (backend !== 'supabase') {
+    console.log('\n❌ Read, insert and delete all worked — against data/reviews/reviews.json.');
+    console.log('   That proves nothing about durability: Render deletes this file on every deploy.');
+    console.log('   Set SUPABASE_URL and SUPABASE_SECRET_KEY in .env, then run this again.');
+    process.exit(1);
+  }
+  console.log('\n✅ Review store is working against Supabase.');
 }
 
 main().catch(err => {

@@ -255,6 +255,53 @@ function checkPaymentStrip() {
     problems.length === 0, problems.slice(0, 3).join(', ') || 'spans, positions and sheet cells all agree');
 }
 
+/**
+ * Below 1024px the header nav is reachable only through the hamburger, and
+ * the wiring runs across four files: the partial holds the button and the
+ * panel, main.css and components.css reveal them, header-nav.js ties them
+ * together. A mistyped id or a renamed class leaves the whole menu
+ * unreachable on a phone while every other page check stays green.
+ */
+function checkMobileNav() {
+  const read = (...parts) => fs.readFileSync(path.join(ROOT, ...parts), 'utf8');
+  const header = read('server', 'views', 'partials', 'header.html');
+  const layout = read('public', 'css', 'main.css');
+  const components = read('public', 'css', 'components.css');
+  const script = read('public', 'js', 'header-nav.js');
+
+  const problems = [];
+  const navId = (header.match(/<nav class="main-nav" id="([^"]+)"/) || [, ''])[1];
+  const controls = (header.match(/class="nav-toggle"[^>]*aria-controls="([^"]+)"/) || [, ''])[1];
+  const scriptId = (script.match(/getElementById\('([^']+)'\)/) || [, ''])[1];
+  if (!navId) problems.push('the nav has no id for the button to open');
+  if (!controls) problems.push('the toggle has no aria-controls');
+  else if (controls !== navId) problems.push(`aria-controls="${controls}" does not match the nav id "${navId}"`);
+  else if (scriptId !== navId) problems.push(`header-nav.js looks up "${scriptId}", not "${navId}"`);
+  if (!/aria-expanded="false"/.test(header)) problems.push('the toggle never announces its state');
+  if (!/class="nav-close"/.test(header)) problems.push('the panel has no close button for keyboard users');
+  for (const selector of ['.nav-toggle', '.nav-backdrop', 'body.nav-open .main-nav', 'body.nav-open {']) {
+    if (!layout.includes(selector)) problems.push(`main.css has no ${selector} rule`);
+  }
+  if (!/@media \(min-width: 1024px\)[\s\S]*\.main-nav \{[\s\S]*?position: static/.test(layout)) {
+    problems.push('nothing restores the inline nav at desktop width');
+  }
+  if (!/@media \(max-width: 1023px\)[\s\S]*?\.main-nav \.nav-list \{[\s\S]*?flex-direction: column/.test(components)) {
+    problems.push('the panel list is not stacked below the breakpoint');
+  }
+  if (/\.main-nav \{\s*display: none/.test(layout)) {
+    problems.push('.main-nav is hidden outright, which would hide the panel with it');
+  }
+  for (const hook of [".nav-toggle", "'nav-open'"]) {
+    if (!script.includes(hook)) problems.push(`header-nav.js no longer reads ${hook}`);
+  }
+  if (/class="dropdown/.test(header) || /\.main-nav \.dropdown\b/.test(components)) {
+    problems.push('the removed header dropdown is still referenced');
+  }
+
+  check('mobile nav wiring (hamburger, panel, styles, script)',
+    problems.length === 0, problems.slice(0, 4).join(', ') || 'button, panel, CSS and script all agree');
+}
+
 /** A storefront page: real header and footer, no unexpanded partial markers. */
 async function page(name, pathname, { navActive = false, drawer = true, jsonLd = false } = {}) {
   const r = await get(pathname);
@@ -295,6 +342,7 @@ async function run(server) {
   checkNoBom();
   checkBakedPages();
   checkPaymentStrip();
+  checkMobileNav();
 
   for (const [name, pathname, opts] of [
     ['homepage', '/', { navActive: true, jsonLd: true }],

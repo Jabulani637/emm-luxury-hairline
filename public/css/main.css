@@ -149,14 +149,119 @@ header {
     color: var(--burgundy);
 }
 
+/* Below the 1024px desktop breakpoint the four links live in a panel that
+   slides in from the right; header-nav.js toggles .nav-open on <body>.
+   visibility rather than display keeps the slide animatable while still
+   taking the closed panel's links out of the tab order. */
 .main-nav {
-    display: none;
-    gap: 40px;
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 70;
+    height: 100vh;
+    height: 100svh;
+    width: min(320px, 84vw);
+    padding: 20px 20px 40px;
+    background: var(--white);
+    box-shadow: -12px 0 32px rgba(26, 18, 20, 0.16);
+    overflow-y: auto;
+    transform: translateX(100%);
+    visibility: hidden;
+    opacity: 0;
+    transition: transform 260ms ease, opacity 200ms ease, visibility 260ms;
+}
+
+body.nav-open .main-nav {
+    transform: translateX(0);
+    visibility: visible;
+    opacity: 1;
+}
+
+body.nav-open {
+    overflow: hidden;
 }
 
 @media (min-width: 1024px) {
     .main-nav {
+        position: static;
+        height: auto;
+        width: auto;
+        padding: 0;
+        background: none;
+        box-shadow: none;
+        overflow: visible;
+        transform: none;
+        visibility: visible;
+        opacity: 1;
         display: flex;
+    }
+}
+
+/* Hamburger: the only way to reach the nav under 1024px. */
+.nav-toggle {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    padding: 0 9px;
+    color: var(--burgundy);
+}
+
+.nav-toggle-bar {
+    display: block;
+    width: 100%;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    transition: transform 200ms ease, opacity 200ms ease;
+}
+
+body.nav-open .nav-toggle-bar:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+body.nav-open .nav-toggle-bar:nth-child(2) {
+    opacity: 0;
+}
+
+body.nav-open .nav-toggle-bar:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+.nav-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-left: auto;
+    color: var(--burgundy);
+    font-size: 28px;
+    line-height: 1;
+}
+
+.nav-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(26, 18, 20, 0.45);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 240ms ease, visibility 240ms;
+}
+
+body.nav-open .nav-backdrop {
+    opacity: 1;
+    visibility: visible;
+}
+
+@media (min-width: 1024px) {
+    .nav-toggle,
+    .nav-close,
+    .nav-backdrop {
+        display: none;
     }
 }
 

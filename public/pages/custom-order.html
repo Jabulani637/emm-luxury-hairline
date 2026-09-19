@@ -27,7 +27,10 @@
     <!-- Canonical site header. Every storefront page pulls this in with an include
      marker naming itself: header active= names the current page (home, collections,
      custom-order, contact) and cart=link makes the bag icon navigate to /cart on pages where the bag icon should navigate to
-     /cart instead of opening the drawer. server/partials.js does the expanding. -->
+     /cart instead of opening the drawer. server/partials.js does the expanding.
+
+     Under 1024px the nav list becomes a slide-in panel opened by .nav-toggle;
+     main.css styles it and public/js/header-nav.js owns its open state. -->
     <header id="main-header">
         <div class="announcement-bar">
             <div class="announcement-track">
@@ -48,7 +51,8 @@
                 <img src="/assets/logo-mark.png" alt="Emm Luxury Hair" width="40" height="40">
                 <span>Emm Luxury Hair</span>
             </a>
-            <nav class="main-nav" role="navigation" aria-label="Main navigation">
+            <nav class="main-nav" id="main-nav" role="navigation" aria-label="Main navigation">
+                <button class="nav-close" type="button" aria-label="Close menu">&times;</button>
                 <ul class="nav-list">
                     <li class="nav-item"><a href="/" class="nav-link">Home</a></li>
                     <li class="nav-item"><a href="/collections/all" class="nav-link">Collection</a></li>
@@ -56,7 +60,13 @@
                     <li class="nav-item"><a href="/pages/contact" class="nav-link">Contact</a></li>
                 </ul>
             </nav>
+            <div class="nav-backdrop"></div>
             <div class="header-actions">
+                <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="main-nav">
+                    <span class="nav-toggle-bar"></span>
+                    <span class="nav-toggle-bar"></span>
+                    <span class="nav-toggle-bar"></span>
+                </button>
                 <button class="search-btn" aria-label="Search">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="11" cy="11" r="8"></circle>

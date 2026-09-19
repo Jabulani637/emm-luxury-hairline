@@ -1,96 +1,68 @@
-// header-nav.js
-// Small unobtrusive script to enable tap-to-open on mobile and keyboard interaction
-// for the data-driven dropdown header.
+// Mobile nav: below the 1024px desktop breakpoint the four header links live
+// in the slide-in panel main.css positions. This script owns the open/close
+// state — the .nav-open class on <body>, the button's aria-expanded, the
+// scroll lock and keeping the keyboard inside the panel while it is open.
 
 document.addEventListener('DOMContentLoaded', () => {
-  const nav = document.querySelector('.main-nav');
-  if (!nav) return;
+  const nav = document.getElementById('main-nav');
+  const toggle = document.querySelector('.nav-toggle');
+  if (!nav || !toggle) return;
 
-	// For each dropdown-enabled nav item, wire up toggles and accessible attributes
-  nav.querySelectorAll('.nav-item.has-dropdown').forEach(item => {
-	const link = item.querySelector('.nav-link');
-	const dropdown = item.querySelector('.dropdown');
-	if (!link || !dropdown) return;
+  const closeBtn = nav.querySelector('.nav-close');
+  const backdrop = document.querySelector('.nav-backdrop');
+  const desktop = window.matchMedia('(min-width: 1024px)');
 
-	const dropdownId = dropdown.id || null;
+  const isOpen = () => document.body.classList.contains('nav-open');
 
-	const setOpen = (open) => {
-	  if (open) {
-		item.classList.add('open');
-		link.setAttribute('aria-expanded', 'true');
-		if (dropdownId) dropdown.setAttribute('aria-hidden', 'false');
-	  } else {
-		item.classList.remove('open');
-		link.setAttribute('aria-expanded', 'false');
-		if (dropdownId) dropdown.setAttribute('aria-hidden', 'true');
-	  }
-	};
+  const setOpen = (open) => {
+    if (open === isOpen()) return;
+    document.body.classList.toggle('nav-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+  };
 
-	// Click/tap behavior: on mobile toggle, on desktop let hover handle it
-	link.addEventListener('click', (ev) => {
-	  const isMobile = window.matchMedia('(max-width: 768px)').matches;
-	  if (!isMobile) return; // let hover/keyboard handle desktop
+  const close = (returnFocus) => {
+    if (!isOpen()) return;
+    setOpen(false);
+    if (returnFocus) toggle.focus();
+  };
 
-	  ev.preventDefault();
-	  const open = item.classList.contains('open');
-	  // close others
-	  nav.querySelectorAll('.nav-item.open').forEach(el => {
-		if (el !== item) {
-		  el.classList.remove('open');
-		  const otherLink = el.querySelector('.nav-link');
-		  const otherDropdown = el.querySelector('.dropdown');
-		  if (otherLink) otherLink.setAttribute('aria-expanded', 'false');
-		  if (otherDropdown) otherDropdown.setAttribute('aria-hidden', 'true');
-		}
-	  });
-	  setOpen(!open);
-	});
+  toggle.addEventListener('click', () => setOpen(!isOpen()));
+  if (closeBtn) closeBtn.addEventListener('click', () => close(true));
+  if (backdrop) backdrop.addEventListener('click', () => close(true));
 
-	// Keyboard: Enter or Space should toggle
-	link.addEventListener('keydown', (ev) => {
-	  if (ev.key === 'Enter' || ev.key === ' ') {
-		ev.preventDefault();
-		link.click();
-	  }
-	});
-
-	// Mouse: reflect hover state into ARIA for assistive tech
-	item.addEventListener('mouseenter', () => {
-	  const isMobile = window.matchMedia('(max-width: 768px)').matches;
-	  if (isMobile) return;
-	  setOpen(true);
-	});
-	item.addEventListener('mouseleave', () => {
-	  const isMobile = window.matchMedia('(max-width: 768px)').matches;
-	  if (isMobile) return;
-	  setOpen(false);
-	});
-
-	// Focus within: when child receives focus, keep it open
-	item.addEventListener('focusin', () => setOpen(true));
-	item.addEventListener('focusout', () => {
-	  // small timeout to allow focus to move within the item
-	  setTimeout(() => {
-		if (!item.contains(document.activeElement)) setOpen(false);
-	  }, 10);
-	});
+  nav.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', () => close(false));
   });
 
-  // Close dropdowns when clicking outside
-  document.addEventListener('click', (ev) => {
-	const isClickInside = nav.contains(ev.target);
-	if (!isClickInside) {
-	  nav.querySelectorAll('.nav-item.open').forEach(el => el.classList.remove('open'));
-	}
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') close(true);
   });
 
-  // Respect keyboard focus: when moving focus away, close open menus
-  nav.addEventListener('focusout', (ev) => {
-	// tiny timeout to allow focus to move within the nav
-	setTimeout(() => {
-	  if (!nav.contains(document.activeElement)) {
-		nav.querySelectorAll('.nav-item.open').forEach(el => el.classList.remove('open'));
-	  }
-	}, 10);
+  // Reaching the first/last focusable item from outside must not leave the
+  // panel, since everything behind it is unscrollable and dimmed.
+  nav.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Tab' || !isOpen()) return;
+    const items = [...nav.querySelectorAll('a[href], button:not([disabled])')]
+      .filter(el => el.offsetParent !== null);
+    if (!items.length) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    const active = document.activeElement;
+    if (ev.shiftKey && (active === first || !nav.contains(active))) {
+      ev.preventDefault();
+      last.focus();
+    } else if (!ev.shiftKey && active === last) {
+      ev.preventDefault();
+      first.focus();
+    }
   });
+
+  // A phone that rotates or a window dragged past the breakpoint should not be
+  // left holding a panel state the desktop layout has no room for.
+  const onViewportChange = (ev) => { if (ev.matches) close(false); };
+  if (typeof desktop.addEventListener === 'function') {
+    desktop.addEventListener('change', onViewportChange);
+  } else {
+    desktop.addListener(onViewportChange);
+  }
 });

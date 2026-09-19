@@ -76,13 +76,14 @@ A source that is not in that map — the product and collection templates, the
 admin shell — is read as a base and never copied out, which is how a page that
 only works on one host stays off the other.
 
-`npm run smoke` boots the server on port 4399 and runs 36 read-only checks — that
+`npm run smoke` boots the server on port 4399 and runs 38 read-only checks — that
 the committed files in `public/` are fully built and every sitemap URL has a file
 behind it, that each page renders with its chrome and no unexpanded marker, that
-legacy URLs 301 and unknown URLs 404, that non-canonical hostnames hand over
-without bouncing `/api` or the admin queue, that `/api/config` leaks no secret,
-and that the queue refuses an unauthenticated caller. Run it after any change to
-routing, partials or the API surface.
+the hamburger, the small-screen nav panel, its CSS and `header-nav.js` still agree
+with each other, that legacy URLs 301 and unknown URLs 404, that non-canonical
+hostnames hand over without bouncing `/api` or the admin queue, that `/api/config`
+leaks no secret, and that the queue refuses an unauthenticated caller. Run it after
+any change to routing, partials or the API surface.
 
 | Script | What it does |
 | --- | --- |
