@@ -10,18 +10,14 @@
  * What it produces, and why:
  *   EmmLuxuryHair.svg    the brand file itself, copied out of design/ because
  *                        every page links it as its favicon.
- *   logo-mark.png        the brand square — the black tile with the gold hair
- *                        silhouette, cropped out of the 2000x2000 lockup in
- *                        design/EmmLuxuryHair.svg. Shown at 40x40 in the header
- *                        and 44x44 in the footer.
- *   apple-touch-icon.png same crop at the 180px iOS wants, and the JSON-LD
- *                        `logo` Google asks for.
- *   favicon.png          the same crop at 64px, kept as the fallback icon for
- *                        browsers that will not render an SVG one — every page
- *                        now links design/EmmLuxuryHair.svg as its primary
- *                        favicon. Until this existed the tab showed a
- *                        hand-drawn burgundy square with a serif "E" in it,
- *                        which is not the brand.
+ *   logo.png             the whole lockup — black tile, EMM, flourish, LUXURY
+ *                        HAIR, rule and tagline — shown at 64px in the header
+ *                        and 72px in the footer. The merchant asked for the file
+ *                        itself and not a crop of it, which retired
+ *                        logo-mark.png and favicon.png, both of which were the
+ *                        black tile alone.
+ *   apple-touch-icon.png the same full lockup at the 180px iOS wants, and the
+ *                        JSON-LD `logo` Google asks for.
  *   <name>-{480,800,1100}.{jpg,webp}
  *                        hero slides. The originals are 130-233KB each and were
  *                        painted as CSS backgrounds, so a phone downloaded the
@@ -40,8 +36,11 @@ const DESIGN = path.join(ROOT, 'design');
 const AD_IMAGES = path.join(ASSETS, 'ad-images');
 
 const LOGO_SOURCE = path.join(DESIGN, 'EmmLuxuryHair.svg');
-// Measured from the 2000x2000 lockup: the black brand square, edge to edge.
-const MARK = { left: 894, top: 550, width: 181, height: 181 };
+// The whole lockup, measured on the 2000x2000 canvas: its inked pixels run
+// 464-1536 across and 548-1572 down, so this is that box squared up with a
+// margin. Nothing is cut — it only drops the empty cream border the export
+// ships with, which would otherwise be most of the tile.
+const LOCKUP = { left: 424, top: 484, width: 1152, height: 1152 };
 
 /**
  * The brand file is not a drawing. Canva exported a 2000x2000 JPEG and wrapped
@@ -80,29 +79,41 @@ function log(name, bytes) {
   console.log(`  ${name.padEnd(34)} ${(bytes / 1024).toFixed(1)} KB`);
 }
 
-async function buildLogoMark() {
+// The two black-tile crops the first brand pass shipped. The merchant wants the
+// whole lockup everywhere instead, so they are removed rather than rebuilt — a
+// stale copy sitting in public/assets would keep being served.
+const RETIRED = ['logo-mark.png', 'favicon.png'];
+
+async function buildBrandAssets() {
   const raster = readLogoRaster();
-  const crop = () => sharp(raster).extract(MARK);
+  const lockup = () => sharp(raster).extract(LOCKUP);
 
   // The brand file is also the published favicon: every page links it as
-  // rel="icon" type="image/svg+xml", so it has to live beside the crops.
+  // rel="icon" type="image/svg+xml".
   const favicon = path.join(ASSETS, 'EmmLuxuryHair.svg');
   fs.copyFileSync(LOGO_SOURCE, favicon);
   log('assets/EmmLuxuryHair.svg', fs.statSync(favicon).size);
 
   const outputs = [
-    ['logo-mark.png', 160, 200],
-    ['apple-touch-icon.png', 180, 220],
-    ['favicon.png', 64, 160],
+    ['logo.png', 512, 256],
+    ['apple-touch-icon.png', 180, 256],
   ];
 
   for (const [file, size, colors] of outputs) {
-    const buf = await crop()
+    const buf = await lockup()
       .resize(size, size, { kernel: 'lanczos3' })
       .png({ palette: true, colors, quality: 100, compressionLevel: 9 })
       .toBuffer();
     fs.writeFileSync(path.join(ASSETS, file), buf);
     log(`assets/${file}`, buf.length);
+  }
+
+  for (const file of RETIRED) {
+    const gone = path.join(ASSETS, file);
+    if (fs.existsSync(gone)) {
+      fs.unlinkSync(gone);
+      console.log(`  removed retired assets/${file}`);
+    }
   }
 }
 
@@ -175,8 +186,8 @@ async function main() {
     console.error(`Missing ${path.relative(ROOT, LOGO_SOURCE)} — the brand lockup the mark, icon and favicon are cropped from.`);
     process.exit(1);
   }
-  console.log('Building assets from sources in public/assets:\n');
-  await buildLogoMark();
+  console.log('Building assets from sources in design/:\n');
+  await buildBrandAssets();
   await buildHeroVariants();
   await buildPaymentSheet();
   console.log('\nDone. Outputs are committed; re-run this only when a source changes.');

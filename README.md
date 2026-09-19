@@ -40,9 +40,13 @@ public/                npm run pages OUTPUT — do not hand-edit the .html here
   css/  js/  assets/   static front end, plain vanilla JS
 data/                  local JSON mirror of custom orders / reviews / subscribers / webhook payloads
 design/                source artwork that public/ only ever holds derivatives of
-  EmmLuxuryHair.svg    the 2000x2000 brand lockup as supplied; logo-mark.png,
-                       apple-touch-icon.png and favicon.png are all cropped from
-                       the same black brand square inside it
+  EmmLuxuryHair.svg    the 2000x2000 brand lockup as supplied. Nothing is cropped
+                       out of it any more: npm run assets copies it to
+                       public/assets as the favicon and trims only its empty
+                       cream border to make logo.png and apple-touch-icon.png.
+                       (logo-mark.png and favicon.png were square crops of the
+                       black tile inside it; the merchant wanted the whole
+                       lockup, so both are gone.)
   payment-sprite.svg   13 payment logos; 11 are cut into payment-icons.png (the
                        source's `discover` symbol is a shopping bag, not that card)
   hero/                the five full-size hero photographs
