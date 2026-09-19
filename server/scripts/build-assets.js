@@ -8,15 +8,20 @@
  * which omits devDependencies) never downloads it.
  *
  * What it produces, and why:
+ *   EmmLuxuryHair.svg    the brand file itself, copied out of design/ because
+ *                        every page links it as its favicon.
  *   logo-mark.png        the brand square — the black tile with the gold hair
  *                        silhouette, cropped out of the 2000x2000 lockup in
  *                        design/EmmLuxuryHair.svg. Shown at 40x40 in the header
  *                        and 44x44 in the footer.
  *   apple-touch-icon.png same crop at the 180px iOS wants, and the JSON-LD
  *                        `logo` Google asks for.
- *   favicon.png          the same crop at 64px, for the browser tab. Until this
- *                        existed the tab showed a hand-drawn burgundy square
- *                        with a serif "E" in it, which is not the brand.
+ *   favicon.png          the same crop at 64px, kept as the fallback icon for
+ *                        browsers that will not render an SVG one — every page
+ *                        now links design/EmmLuxuryHair.svg as its primary
+ *                        favicon. Until this existed the tab showed a
+ *                        hand-drawn burgundy square with a serif "E" in it,
+ *                        which is not the brand.
  *   <name>-{480,800,1100}.{jpg,webp}
  *                        hero slides. The originals are 130-233KB each and were
  *                        painted as CSS backgrounds, so a phone downloaded the
@@ -78,6 +83,12 @@ function log(name, bytes) {
 async function buildLogoMark() {
   const raster = readLogoRaster();
   const crop = () => sharp(raster).extract(MARK);
+
+  // The brand file is also the published favicon: every page links it as
+  // rel="icon" type="image/svg+xml", so it has to live beside the crops.
+  const favicon = path.join(ASSETS, 'EmmLuxuryHair.svg');
+  fs.copyFileSync(LOGO_SOURCE, favicon);
+  log('assets/EmmLuxuryHair.svg', fs.statSync(favicon).size);
 
   const outputs = [
     ['logo-mark.png', 160, 200],
