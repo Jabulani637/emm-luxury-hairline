@@ -103,7 +103,7 @@ function renderCartItems() {
 
   if (!cart || !cart.lines || cart.lines.edges.length === 0) {
     cartItemsContainer.innerHTML = '<p class="empty-cart">Your bag is empty</p>';
-    if (cartTotalEl) cartTotalEl.textContent = '$0.00';
+    if (cartTotalEl) cartTotalEl.textContent = formatPrice(0, window.cartManager.getCurrency());
     return;
   }
 
@@ -163,9 +163,9 @@ function initCartQuantityHandlers() {
 
     const currentQty = parseInt(btn.dataset.qty, 10) || 1;
     const isDecrease = btn.classList.contains('quantity-decrease');
+    // Reaching 0 is deliberate: Shopify removes the line, and at a quantity of
+    // one "−" is the only way to take the item out of the bag.
     const newQty = isDecrease ? currentQty - 1 : currentQty + 1;
-
-    if (isDecrease && currentQty <= 1) return; // don't go below 1
 
     // Optimistically disable both steppers for this line to prevent double-clicks
     const wrapper = btn.closest('.cart-item-quantity');

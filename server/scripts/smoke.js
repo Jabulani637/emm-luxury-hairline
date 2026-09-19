@@ -388,6 +388,128 @@ function checkMobileNav() {
     problems.length === 0, problems.slice(0, 4).join(', ') || 'button, panel, CSS and script all agree');
 }
 
+/**
+ * The "≈ in your money" line spans five files: the rates route, api.js,
+ * shared.js, the class list it hunts for prices in, and the stylesheet that
+ * makes the hint look subordinate to the pound figure. Every one of those links
+ * fails silently — a renamed price class just means that price stops showing
+ * the hint, and nobody notices on a UK browser where no hint shows at all.
+ */
+function checkLocalCurrency() {
+  const read = (...parts) => fs.readFileSync(path.join(ROOT, ...parts), 'utf8');
+  const route = read('server', 'routes', 'rates.js');
+  const mounted = read('server', 'index.js');
+  const api = read('public', 'js', 'api.js');
+  const script = read('public', 'js', 'shared.js');
+  const components = read('public', 'css', 'components.css');
+  const markup = [
+    read('server', 'views', 'partials', 'cart-drawer.html'),
+    read('server', 'views', 'pages', 'cart.html'),
+  ].join('\n') + fs.readdirSync(path.join(ROOT, 'public', 'js'))
+    .filter(f => f.endsWith('.js'))
+    .map(f => read('public', 'js', f)).join('\n');
+
+  const problems = [];
+  if (!/app\.use\('\/api\/rates'/.test(mounted)) problems.push('GET /api/rates is not mounted');
+  if (!/open\.er-api\.com/.test(route)) problems.push('the rates route names no upstream');
+  if (!/GBP/.test(route) || !/base: 'GBP'/.test(route)) problems.push('the rates route is not anchored on GBP');
+  if (!/apiFetch\('\/rates'\)/.test(api)) problems.push('api.js never calls /rates');
+  if (!/window\.ratesAPI\s*=/.test(api)) problems.push('api.js does not expose ratesAPI');
+
+  if (!/REGION_CURRENCY/.test(script)) problems.push('shared.js has no region to currency map');
+  if (!/code !== 'GBP'/.test(script)) {
+    problems.push('a UK visitor would be shown a conversion of pounds into pounds');
+  }
+  if (!/price-approx/.test(script)) problems.push('shared.js writes no hint element');
+
+  const selectors = (script.match(/const PRICE_SELECTOR = \[([\s\S]*?)\]\.join/) || [, ''])[1]
+    .split(',')
+    .map(s => s.trim().replace(/^['`]|\s*['`]$/g, '').replace(/^[.#]/, ''))
+    .filter(Boolean);
+  if (selectors.length < 5) problems.push('the price selector list looks truncated');
+  const stale = selectors.filter(name => !markup.includes(name));
+  if (stale.length) problems.push(`nothing renders ${stale.join(', ')}, so those prices never get a hint`);
+
+  for (const rule of ['.price-approx {', '.price-approx-note {']) {
+    if (!components.includes(rule)) problems.push(`components.css has no ${rule} rule`);
+  }
+  if (!/display: block/.test(components.slice(components.indexOf('.price-approx {')))) {
+    problems.push('the hint is not block-level, so it would sit on the price instead of under it');
+  }
+  if (!/guidance only/.test(script)) problems.push('nothing tells the shopper the ≈ figure is not the charge');
+
+  check('local-currency hints (rates route through to the hint styles)',
+    problems.length === 0, problems.slice(0, 4).join(', ') || 'route, client, script, selectors and CSS all agree');
+}
+
+function checkShippingTotals() {
+  const read = (...parts) => fs.readFileSync(path.join(ROOT, ...parts), 'utf8');
+  // The fragment documents the removed fields by name, so only real GraphQL
+  // counts here.
+  const gql = source => source
+    .split('\n')
+    .filter(line => !/^\s*(\*|\/\*|\/\/)/.test(line))
+    .join('\n');
+  const fields = read('server', 'shopify', 'cartFields.js');
+  const cartJs = read('public', 'js', 'cart.js');
+  const cartPage = read('public', 'js', 'cart-page.js');
+  const markup = read('server', 'views', 'pages', 'cart.html');
+
+  // Every one of these hands a cart back to the browser, which stores it
+  // verbatim — so they all have to answer with the same fields.
+  const replies = ['cartCreate.js', 'cartLinesAdd.js', 'cartLinesUpdate.js',
+    'cartDeliveryAddressUpdate.js', 'cartDeliveryOptionsUpdate.js'];
+
+  const problems = [];
+
+  if (!/deliveryGroups\(first:/.test(fields)) {
+    problems.push('the shared cart fragment has no delivery groups');
+  }
+  if (!/estimatedCost/.test(fields)) {
+    problems.push('delivery options are not priced with estimatedCost, which is the only price CartDeliveryOption has');
+  }
+
+  for (const file of replies) {
+    const source = read('server', 'shopify', 'mutations', file);
+    if (!/\$\{CART_FIELDS\}/.test(source)) problems.push(`${file} builds its own cart fields instead of the shared fragment`);
+    if (/\bdeliveryGroups\(first:/.test(source)) problems.push(`${file} repeats delivery groups outside the fragment`);
+  }
+
+  const allSources = replies.map(f => gql(read('server', 'shopify', 'mutations', f))).join('\n');
+  for (const dropped of ['totalShippingAmount', 'totalTaxAmount', 'totalDutyAmount']) {
+    if (allSources.includes(dropped) || gql(fields).includes(dropped)) {
+      problems.push(`a cart query asks for ${dropped}, which 2025-10 removed from CartCost`);
+    }
+  }
+  if (/deliveryOptions \{[\s\S]*?\bcost \{/.test(gql(fields)) || /selectedDeliveryOption \{[\s\S]*?\bcost \{/.test(gql(fields))) {
+    problems.push('a delivery option is priced with cost{}, which does not exist on CartDeliveryOption');
+  }
+
+  const address = read('server', 'shopify', 'mutations', 'cartDeliveryAddressUpdate.js');
+  const options = read('server', 'shopify', 'mutations', 'cartDeliveryOptionsUpdate.js');
+  if (!/cartDeliveryAddressesReplace\(/.test(address)) problems.push('the address quote does not call cartDeliveryAddressesReplace');
+  if (!/cartSelectedDeliveryOptionsUpdate\(/.test(options)) problems.push('the rate choice does not call cartSelectedDeliveryOptionsUpdate');
+
+  if (!/return null;/.test(cartJs)) problems.push('cart.js cannot tell "no rate quoted" from a free rate');
+  const grand = (cartJs.match(/getGrandTotal\(\) \{([\s\S]*?)\n  \}/) || [, ''])[1];
+  if (!/totalAmount/.test(grand)) problems.push('the grand total no longer comes from cost.totalAmount');
+  if (/getShippingAmount/.test(grand)) problems.push('shipping is being added to a total that already contains it');
+
+  for (const state of ['Calculated at checkout', 'Free']) {
+    if (!cartPage.includes(state)) problems.push(`the shipping row never says "${state}"`);
+  }
+  if (!/getGrandTotal\(\)/.test(cartPage)) problems.push('the cart page does not print the grand total');
+  for (const row of ['cart-subtotal', 'cart-shipping', 'cart-total']) {
+    if (!markup.includes(`id="${row}"`)) problems.push(`the summary has no #${row} row`);
+  }
+  if (/id="cart-total"[\s\S]*id="cart-shipping"/.test(markup)) {
+    problems.push('the Total row sits above Shipping, so the summary does not read as arithmetic');
+  }
+
+  check('shipping is quoted, kept and inside the total',
+    problems.length === 0, problems.slice(0, 4).join(', ') || 'fragment, mutations, cart math and summary rows all agree');
+}
+
 /** A storefront page: real header and footer, no unexpanded partial markers. */
 async function page(name, pathname, { navActive = false, drawer = true, jsonLd = false } = {}) {
   const r = await get(pathname);
@@ -448,6 +570,8 @@ async function run(server) {
   checkNewsletter();
   checkSignupDialog();
   checkMobileNav();
+  checkLocalCurrency();
+  checkShippingTotals();
 
   for (const [name, pathname, opts] of [
     ['homepage', '/', { navActive: true, jsonLd: true }],

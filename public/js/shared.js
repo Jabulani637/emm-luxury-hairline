@@ -131,6 +131,176 @@ function handleFromLocation(kind) {
   return new URLSearchParams(window.location.search).get('handle') || '';
 }
 
+/* ── Local-currency hints ─────────────────────────────────────────────── */
+
+/**
+ * The store charges in pounds and that does not change. What can change is how
+ * readable a pound figure is to someone whose rent is paid in naira, so every
+ * standalone price gets a second line showing what it roughly equals in the
+ * money the visitor's own browser reports.
+ *
+ * Three rules keep that honest:
+ *   - The pound figure is never replaced, moved or restyled. It is the price.
+ *   - The hint is rounded to whole units. An indicative number that quotes
+ *     cents is pretending to a precision it does not have.
+ *   - Anything missing — no region, no rate for it, a failed call — means no
+ *     hint appears. Silence is not a failure state on a decorative figure.
+ */
+
+// ISO region → the currency priced there. Only places this store ships to; a
+// region that is not listed gets no hint rather than a guessed one.
+const REGION_CURRENCY = {
+  IE: 'EUR', DE: 'EUR', FR: 'EUR', NL: 'EUR', BE: 'EUR', AT: 'EUR', IT: 'EUR',
+  ES: 'EUR', PT: 'EUR', FI: 'EUR', GR: 'EUR', LU: 'EUR', MT: 'EUR', CY: 'EUR',
+  SE: 'SEK', NO: 'NOK', DK: 'DKK', IS: 'ISK', PL: 'PLN', CZ: 'CZK', RO: 'RON',
+  HU: 'HUF', HR: 'HRK', BG: 'BGN', CH: 'CHF', GB: 'GBP',
+  US: 'USD', CA: 'CAD', MX: 'MXN',
+  AU: 'AUD', NZ: 'NZD', FJ: 'FJD',
+  ZA: 'ZAR', NG: 'NGN', KE: 'KES', GH: 'GHS', TZ: 'TZS', UG: 'UGX', ZM: 'ZMW',
+  ZW: 'USD', CM: 'XAF', CI: 'XOF', SN: 'XOF', ML: 'XOF', BF: 'XOF', MA: 'MAD',
+  EG: 'EGP', ET: 'ETB', RW: 'RWF', MZ: 'MZN', NA: 'NAD', BW: 'BWP', TN: 'TND',
+  AE: 'AED', SA: 'SAR', QA: 'QAR', KW: 'KWD', BH: 'BHD', OM: 'OMR', JO: 'JOD',
+  TR: 'TRY', IL: 'ILS',
+  IN: 'INR', PK: 'PKR', BD: 'BDT', LK: 'LKR', NP: 'NPR',
+  CN: 'CNY', JP: 'JPY', KR: 'KRW', SG: 'SGD', MY: 'MYR', ID: 'IDR', TH: 'THB',
+  PH: 'PHP', VN: 'VND', HK: 'HKD', TW: 'TWD',
+  BR: 'BRL', AR: 'ARS', CL: 'CLP', CO: 'COP', PE: 'PEN', UY: 'UYU',
+};
+
+// Elements that hold nothing but a price. Anything with children is skipped, so
+// listing a container here is harmless.
+const PRICE_SELECTOR = [
+  '.product-price',
+  '.current-price',
+  '.cart-item-price',
+  '.search-result-price',
+  '.summary-price',
+  '.rate-cost',
+  '#cart-subtotal',
+  '#cart-shipping',
+  '#cart-total',
+].join(', ');
+
+const GBP_AMOUNT = /^£\s*([\d,]+(?:\.\d{1,2})?)$/;
+
+const visitorCurrency = (function () {
+  const tags = (navigator.languages && navigator.languages.length)
+    ? navigator.languages
+    : [navigator.language || ''];
+
+  for (const tag of tags) {
+    const code = REGION_CURRENCY[(tag.split('-')[1] || '').toUpperCase()];
+    if (code && code !== 'GBP') return code;
+  }
+  return null;
+})();
+
+let localRates = null;
+
+function approxOf(amount) {
+  const rate = localRates && localRates[visitorCurrency];
+  if (!rate) return null;
+
+  try {
+    return new Intl.NumberFormat(navigator.language || 'en', {
+      style: 'currency',
+      currency: visitorCurrency,
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
+    }).format(amount * rate);
+  } catch (error) {
+    return null; // a currency this browser cannot name
+  }
+}
+
+function addNoteAfter(node) {
+  if (document.querySelector('.price-approx-note')) return;
+
+  const note = document.createElement('p');
+  note.className = 'price-approx-note';
+  note.textContent = 'You are charged in British pounds (GBP). The '
+    + '\u2248' + ' figures are today\u2019s rate for guidance only, not a quote.';
+
+  // Both rows are flex containers; inserting inside one would make the note a
+  // third item on the line rather than a line of its own.
+  const row = node.closest('.summary-row, .cart-total') || node;
+  row.insertAdjacentElement('afterend', note);
+}
+
+/**
+ * Appends the hint inside the price element rather than beside it: a nested
+ * block always lands under its own number, whereas a sibling would be dropped
+ * into whatever flex row the price happens to sit in.
+ */
+function decoratePrices(root) {
+  if (!visitorCurrency || !localRates) return;
+
+  const scope = root || document;
+  const targets = scope.querySelectorAll ? scope.querySelectorAll(PRICE_SELECTOR) : [];
+  let added = 0;
+
+  for (const el of targets) {
+    // A price that already carries a hint has an element child, so this one
+    // check both finds leaf elements and keeps re-decoration idempotent.
+    if (el.firstElementChild) continue;
+
+    const match = GBP_AMOUNT.exec(el.textContent.trim());
+    if (!match) continue;
+
+    const amount = parseFloat(match[1].replace(/,/g, ''));
+    if (!amount) continue;
+
+    const approx = approxOf(amount);
+    if (!approx) continue;
+
+    const hint = document.createElement('span');
+    hint.className = 'price-approx';
+    hint.textContent = '\u2248 ' + approx;
+    hint.title = 'About ' + approx + ' at today\u2019s exchange rate. '
+      + 'The price shown in \u00a3 is what you pay.';
+    el.appendChild(hint);
+    added++;
+
+    if (el.id === 'cart-total') addNoteAfter(el);
+  }
+
+  if (added) document.documentElement.classList.add('has-price-approx');
+}
+
+function startLocalCurrencyHints() {
+  if (!visitorCurrency || typeof window.ratesAPI === 'undefined') return;
+
+  decoratePrices(document);
+
+  window.ratesAPI.getRates()
+    .then(response => {
+      if (!response || !response.rates) return;
+      localRates = response.rates;
+      decoratePrices(document);
+
+      // Prices are rendered after this point by the page scripts and by the
+      // cart drawer, so watch for them instead of asking each renderer to
+      // remember to call in. Appending a hint is itself a mutation, which is
+      // why decoratePrices skips elements that already have one.
+      let queued = false;
+      new MutationObserver(() => {
+        if (queued) return;
+        queued = true;
+        setTimeout(() => {
+          queued = false;
+          decoratePrices(document);
+        }, 0);
+      }).observe(document.body, { childList: true, subtree: true });
+    })
+    .catch(() => {});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startLocalCurrencyHints);
+} else {
+  startLocalCurrencyHints();
+}
+
 window.escapeHtml = escapeHtml;
 window.buildDirectCheckoutUrl = buildDirectCheckoutUrl;
 window.createProductCard = createProductCard;

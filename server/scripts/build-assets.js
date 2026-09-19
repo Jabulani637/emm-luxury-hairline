@@ -8,12 +8,15 @@
  * which omits devDependencies) never downloads it.
  *
  * What it produces, and why:
- *   logo-mark.png        the 2000x2000 brand lockup is a photograph of a design
- *                        wrapped in an SVG, 181KB, shown at 40x40. Only the
- *                        black square inside it reads at that size, so that is
- *                        what gets cropped out.
+ *   logo-mark.png        the brand square — the black tile with the gold hair
+ *                        silhouette, cropped out of the 2000x2000 lockup in
+ *                        design/EmmLuxuryHair.svg. Shown at 40x40 in the header
+ *                        and 44x44 in the footer.
  *   apple-touch-icon.png same crop at the 180px iOS wants, and the JSON-LD
  *                        `logo` Google asks for.
+ *   favicon.png          the same crop at 64px, for the browser tab. Until this
+ *                        existed the tab showed a hand-drawn burgundy square
+ *                        with a serif "E" in it, which is not the brand.
  *   <name>-{480,800,1100}.{jpg,webp}
  *                        hero slides. The originals are 130-233KB each and were
  *                        painted as CSS backgrounds, so a phone downloaded the
@@ -31,9 +34,24 @@ const ASSETS = path.join(ROOT, 'public', 'assets');
 const DESIGN = path.join(ROOT, 'design');
 const AD_IMAGES = path.join(ASSETS, 'ad-images');
 
-const LOGO_SOURCE = path.join(DESIGN, 'logo-source.jpg');
-// Measured from the 2000x2000 lockup: the black brand square.
-const MARK = { left: 893, top: 550, width: 182, height: 182 };
+const LOGO_SOURCE = path.join(DESIGN, 'EmmLuxuryHair.svg');
+// Measured from the 2000x2000 lockup: the black brand square, edge to edge.
+const MARK = { left: 894, top: 550, width: 181, height: 181 };
+
+/**
+ * The brand file is not a drawing. Canva exported a 2000x2000 JPEG and wrapped
+ * it in an <svg> element, then attached a C2PA provenance manifest, which is
+ * what makes the file 181KB when the artwork inside it is 130KB of that. So
+ * the raster has to be lifted out of the wrapper before anything can crop it.
+ */
+function readLogoRaster() {
+  const svg = fs.readFileSync(LOGO_SOURCE, 'utf8');
+  const embedded = svg.match(/<image[^>]*href="data:image\/jpeg;base64,([^"]+)"/);
+  if (!embedded) {
+    throw new Error(`${path.relative(ROOT, LOGO_SOURCE)} holds no <image href="data:image/jpeg;base64,...">`);
+  }
+  return Buffer.from(embedded[1], 'base64');
+}
 
 // Read from design/hero/, written as variants into public/assets/ad-images/.
 const HERO_SOURCES = [
@@ -58,16 +76,23 @@ function log(name, bytes) {
 }
 
 async function buildLogoMark() {
-  const jpeg = fs.readFileSync(LOGO_SOURCE);
-  const mark = await sharp(jpeg).extract(MARK).resize(128, 128, { kernel: 'lanczos3' })
-    .png({ palette: true, colors: 128, quality: 100 }).toBuffer();
-  fs.writeFileSync(path.join(ASSETS, 'logo-mark.png'), mark);
-  log('assets/logo-mark.png', mark.length);
+  const raster = readLogoRaster();
+  const crop = () => sharp(raster).extract(MARK);
 
-  const touch = await sharp(jpeg).extract(MARK).resize(180, 180, { kernel: 'lanczos3' })
-    .png({ palette: true, colors: 160, quality: 100 }).toBuffer();
-  fs.writeFileSync(path.join(ASSETS, 'apple-touch-icon.png'), touch);
-  log('assets/apple-touch-icon.png', touch.length);
+  const outputs = [
+    ['logo-mark.png', 160, 200],
+    ['apple-touch-icon.png', 180, 220],
+    ['favicon.png', 64, 160],
+  ];
+
+  for (const [file, size, colors] of outputs) {
+    const buf = await crop()
+      .resize(size, size, { kernel: 'lanczos3' })
+      .png({ palette: true, colors, quality: 100, compressionLevel: 9 })
+      .toBuffer();
+    fs.writeFileSync(path.join(ASSETS, file), buf);
+    log(`assets/${file}`, buf.length);
+  }
 }
 
 async function buildHeroVariants() {
@@ -136,7 +161,7 @@ async function buildPaymentSheet() {
 
 async function main() {
   if (!fs.existsSync(LOGO_SOURCE)) {
-    console.error(`Missing ${path.relative(ROOT, LOGO_SOURCE)} — the logo lockup it is cropped from.`);
+    console.error(`Missing ${path.relative(ROOT, LOGO_SOURCE)} — the brand lockup the mark, icon and favicon are cropped from.`);
     process.exit(1);
   }
   console.log('Building assets from sources in public/assets:\n');

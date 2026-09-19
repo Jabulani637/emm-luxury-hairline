@@ -1,98 +1,21 @@
 const { shopifyFetch } = require('../client');
+const { CART_FIELDS, CART_ERRORS } = require('../cartFields');
 
+/**
+ * cartDeliveryOptionsUpdate — records which rate the shopper picked so the
+ * hosted checkout opens on the same one.
+ *
+ * The API call is now `cartSelectedDeliveryOptionsUpdate`, and the totals come
+ * from the shared cart fragment: CartCost no longer exposes a shipping field of
+ * its own because cost.totalAmount already includes the selected rate.
+ */
 const CART_DELIVERY_OPTIONS_UPDATE_MUTATION = `
   mutation cartDeliveryOptionsUpdate($cartId: ID!, $deliveryOptions: [CartSelectedDeliveryOptionInput!]!) {
-    cartDeliveryOptionsUpdate(cartId: $cartId, selectedDeliveryOptions: $deliveryOptions) {
+    cartSelectedDeliveryOptionsUpdate(cartId: $cartId, selectedDeliveryOptions: $deliveryOptions) {
       cart {
-        id
-        checkoutUrl
-        totalQuantity
-        cost {
-          totalAmount {
-            amount
-            currencyCode
-          }
-          subtotalAmount {
-            amount
-            currencyCode
-          }
-          totalTaxAmount {
-            amount
-            currencyCode
-          }
-          totalDutyAmount {
-            amount
-            currencyCode
-          }
-          totalShippingAmount {
-            amount
-            currencyCode
-          }
-        }
-        lines(first: 100) {
-          edges {
-            node {
-              id
-              quantity
-              merchandise {
-                ... on ProductVariant {
-                  id
-                  title
-                  price {
-                    amount
-                    currencyCode
-                  }
-                  product {
-                    title
-                    handle
-                    images(first: 1) {
-                      edges {
-                        node {
-                          url
-                          altText
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        deliveryGroups(first: 10) {
-          edges {
-            node {
-              id
-              selectedDeliveryOption {
-                handle
-                title
-                cost {
-                  amount
-                  currencyCode
-                }
-              }
-              deliveryOptions {
-                handle
-                title
-                cost {
-                  amount
-                  currencyCode
-                }
-                description
-                estimatedCost {
-                  amount
-                  currencyCode
-                }
-              }
-            }
-          }
-        }
+        ${CART_FIELDS}
       }
-      userErrors {
-        field
-        message
-        code
-      }
+      ${CART_ERRORS}
     }
   }
 `;
@@ -111,12 +34,12 @@ async function cartDeliveryOptionsUpdate(cartId, deliveryOptions) {
     variables,
   });
 
-  if (data.cartDeliveryOptionsUpdate?.userErrors?.length) {
-    const errors = data.cartDeliveryOptionsUpdate.userErrors;
-    throw new Error(errors.map(e => `${e.code ? `[${e.code}] ` : ''}${e.message}`).join(', '));
+  const payload = data.cartSelectedDeliveryOptionsUpdate;
+  if (payload?.userErrors?.length) {
+    throw new Error(payload.userErrors.map(e => e.message).join(', '));
   }
 
-  return data.cartDeliveryOptionsUpdate.cart;
+  return payload.cart;
 }
 
 module.exports = { cartDeliveryOptionsUpdate };

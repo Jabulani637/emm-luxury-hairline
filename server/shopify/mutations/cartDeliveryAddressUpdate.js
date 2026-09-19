@@ -1,126 +1,52 @@
 const { shopifyFetch } = require('../client');
+const { CART_FIELDS, CART_ERRORS } = require('../cartFields');
 
+/**
+ * cartDeliveryAddressUpdate — puts a destination on the cart so Shopify will
+ * price the delivery groups.
+ *
+ * This used to call `cartDeliveryAddressUpdate` in the Storefront API, which no
+ * longer exists: a cart now holds a list of selectable addresses, so the quote
+ * replaces that list with the one address the shopper typed in. `oneTimeUse`
+ * keeps it out of the customer's saved addresses, and COUNTRY_CODE_ONLY means a
+ * mistyped street or county cannot sink the whole estimate.
+ */
 const CART_DELIVERY_ADDRESS_UPDATE_MUTATION = `
-  mutation cartDeliveryAddressUpdate($cartId: ID!, $deliveryAddress: DeliveryAddressInput!) {
-    cartDeliveryAddressUpdate(cartId: $cartId, deliveryAddress: $deliveryAddress) {
+  mutation cartDeliveryAddressUpdate($cartId: ID!, $addresses: [CartSelectableAddressInput!]!) {
+    cartDeliveryAddressesReplace(cartId: $cartId, addresses: $addresses) {
       cart {
-        id
-        checkoutUrl
-        totalQuantity
-        cost {
-          totalAmount {
-            amount
-            currencyCode
-          }
-          subtotalAmount {
-            amount
-            currencyCode
-          }
-          totalTaxAmount {
-            amount
-            currencyCode
-          }
-          totalDutyAmount {
-            amount
-            currencyCode
-          }
-        }
-        lines(first: 100) {
-          edges {
-            node {
-              id
-              quantity
-              merchandise {
-                ... on ProductVariant {
-                  id
-                  title
-                  price {
-                    amount
-                    currencyCode
-                  }
-                  product {
-                    title
-                    handle
-                    images(first: 1) {
-                      edges {
-                        node {
-                          url
-                          altText
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        deliveryGroups(first: 10) {
-          edges {
-            node {
-              id
-              selectedDeliveryOption {
-                handle
-                title
-                cost {
-                  amount
-                  currencyCode
-                }
-              }
-              deliveryOptions {
-                handle
-                title
-                cost {
-                  amount
-                  currencyCode
-                }
-                description
-                estimatedCost {
-                  amount
-                  currencyCode
-                }
-              }
-            }
-          }
-        }
+        ${CART_FIELDS}
       }
-      userErrors {
-        field
-        message
-        code
-      }
+      ${CART_ERRORS}
     }
   }
 `;
 
 async function cartDeliveryAddressUpdate(cartId, address) {
-  const variables = {
-    cartId,
-    deliveryAddress: {
-      firstName: address.firstName || '',
-      lastName: address.lastName || '',
-      address1: address.address1 || '',
-      address2: address.address2 || null,
-      city: address.city || '',
-      company: address.company || null,
-      country: address.country,
-      province: address.province || null,
-      zip: address.zip || '',
-      phone: address.phone || null,
-    },
-  };
+  const deliveryAddress = { countryCode: address.country };
+  if (address.zip) deliveryAddress.zip = address.zip;
+  // provinceCode is a code (GB-LND, NY, Gauteng), never the display name:
+  // the cart page sends whatever the <select> holds, which is the code.
+  if (address.province) deliveryAddress.provinceCode = address.province;
 
   const data = await shopifyFetch({
     query: CART_DELIVERY_ADDRESS_UPDATE_MUTATION,
-    variables,
+    variables: {
+      cartId,
+      addresses: [{
+        address: { deliveryAddress },
+        selected: true,
+        oneTimeUse: true,
+        validationStrategy: 'COUNTRY_CODE_ONLY',
+      }],
+    },
   });
 
-  if (data.cartDeliveryAddressUpdate?.userErrors?.length) {
-    const errors = data.cartDeliveryAddressUpdate.userErrors;
-    throw new Error(errors.map(e => `${e.code ? `[${e.code}] ` : ''}${e.message}`).join(', '));
+  if (data.cartDeliveryAddressesReplace?.userErrors?.length) {
+    throw new Error(data.cartDeliveryAddressesReplace.userErrors.map(e => e.message).join(', '));
   }
 
-  return data.cartDeliveryAddressUpdate.cart;
+  return data.cartDeliveryAddressesReplace.cart;
 }
 
 module.exports = { cartDeliveryAddressUpdate };

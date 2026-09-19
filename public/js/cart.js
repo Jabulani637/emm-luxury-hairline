@@ -49,7 +49,10 @@ class CartManager {
 
   getItemCount() {
     if (!this.cart) return 0;
-    return this.cart.totalQuantity || 0;
+    const total = this.cart.totalQuantity;
+    if (typeof total === 'number' && total > 0) return total;
+    const edges = (this.cart.lines && this.cart.lines.edges) || [];
+    return edges.reduce((sum, line) => sum + (line.node?.quantity || 0), 0);
   }
 
   async addToCart(variantId, quantity = 1) {
@@ -104,13 +107,11 @@ class CartManager {
   }
 
   getTotal() {
-    if (!this.cart) return '0.00';
-    return this.cart.cost?.totalAmount?.amount || '0.00';
+    return this.getGrandTotal().amount;
   }
 
   getCurrency() {
-    if (!this.cart) return 'USD';
-    return this.cart.cost?.totalAmount?.currencyCode || 'USD';
+    return this.getGrandTotal().currencyCode;
   }
 
   async estimateShipping(address) {
@@ -145,7 +146,7 @@ class CartManager {
           handle: option.handle,
           title: option.title,
           description: option.description,
-          cost: option.estimatedCost || option.cost,
+          cost: option.estimatedCost,
           selected: selected ? selected.handle === option.handle : false,
         });
       }
@@ -185,34 +186,49 @@ class CartManager {
     }
   }
 
+  /**
+   * The shipping figure the shopper has committed to, or null when they have
+   * not estimated yet. Shopify stopped exposing a shipping total on CartCost,
+   * so it is the sum of each delivery group's selected option.
+   */
   getShippingAmount() {
-    if (!this.cart) return { amount: '0.00', currencyCode: 'USD' };
+    const groups = (this.cart && this.cart.deliveryGroups && this.cart.deliveryGroups.edges) || [];
+    let selected = null;
+    let total = 0;
 
-    if (this.cart.cost && this.cart.cost.totalShippingAmount) {
-      const s = this.cart.cost.totalShippingAmount;
-      return { amount: s.amount || '0.00', currencyCode: s.currencyCode || 'USD' };
-    }
-
-    const groups = (this.cart.deliveryGroups && this.cart.deliveryGroups.edges) || [];
     for (const group of groups) {
-      const sel = group.node.selectedDeliveryOption;
-      if (sel && sel.cost) {
-        return { amount: sel.cost.amount, currencyCode: sel.cost.currencyCode };
-      }
+      const option = group.node && group.node.selectedDeliveryOption;
+      const cost = option && option.estimatedCost;
+      if (!cost) continue;
+      selected = selected || cost.currencyCode || 'GBP';
+      total += parseFloat(cost.amount) || 0;
     }
 
-    const currency = (this.cart.cost && this.cart.cost.totalAmount && this.cart.cost.totalAmount.currencyCode) || 'USD';
-    return { amount: '0.00', currencyCode: currency };
+    if (!selected) return null;
+    return { amount: total.toFixed(2), currencyCode: selected };
   }
 
-  getGrandTotal() {
-    const cart = this.cart;
-    if (!cart || !cart.cost || !cart.cost.totalAmount) {
-      return { amount: '0.00', currencyCode: 'USD' };
-    }
+  /**
+   * Goods only, before delivery. An older build saved carts that never asked
+   * for subtotalAmount, so those fall back to the grand total — which is the
+   * same number, because a cart without delivery groups has no shipping in it.
+   */
+  getSubtotal() {
+    const subtotal = this.cart && this.cart.cost && this.cart.cost.subtotalAmount;
+    if (subtotal) return { amount: subtotal.amount, currencyCode: subtotal.currencyCode || 'GBP' };
+    return this.getGrandTotal();
+  }
 
-    const total = cart.cost.totalAmount;
-    return { amount: total.amount, currencyCode: total.currencyCode };
+  /**
+   * What the shopper is about to pay. This is Shopify's totalAmount as-is:
+   * measured on the live store, a £450.00 bag with a £6.99 Express rate came
+   * back as £456.99, so shipping is already inside it and adding the shipping
+   * row here would charge for it twice.
+   */
+  getGrandTotal() {
+    const total = this.cart && this.cart.cost && this.cart.cost.totalAmount;
+    if (!total) return { amount: '0.00', currencyCode: 'GBP' };
+    return { amount: total.amount || '0.00', currencyCode: total.currencyCode || 'GBP' };
   }
 }
 
@@ -223,7 +239,7 @@ const cartManager = new CartManager();
 window.cartManager = cartManager;
 
 // Format price for display
-function formatPrice(amount, currencyCode = 'USD') {
+function formatPrice(amount, currencyCode = 'GBP') {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currencyCode,

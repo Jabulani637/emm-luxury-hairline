@@ -74,7 +74,6 @@ function updateProvinces(countrySelect, provinceSelect) {
     for (const p of provinces) {
       const opt = document.createElement('option');
       opt.value = p.code;
-      opt.setAttribute('data-name', p.name);
       opt.textContent = p.name;
       provinceSelect.appendChild(opt);
     }
@@ -97,9 +96,6 @@ async function onCalculateShipping(e) {
 
   const countryCode = countrySelect.value;
   const provinceCode = provinceSelect.value;
-  const provinceName = provinceCode
-    ? (provinceSelect.options[provinceSelect.selectedIndex]?.getAttribute('data-name') || provinceCode)
-    : '';
   const zip = (zipInput?.value || '').trim();
 
   errorBox.style.display = 'none';
@@ -127,7 +123,7 @@ async function onCalculateShipping(e) {
       zip: zip,
     };
     if (provinceCode) {
-      address.province = provinceName || provinceCode;
+      address.province = provinceCode;
     }
 
     const rates = await window.cartManager.estimateShipping(address);
@@ -145,14 +141,13 @@ function renderShippingRates(rates) {
   const ratesBox = document.getElementById('shipping-rates');
   const ratesList = document.getElementById('shipping-rates-list');
   const ratesTitle = document.getElementById('shipping-rates-title');
-  const cartShippingEl = document.getElementById('cart-shipping');
 
   ratesList.innerHTML = '';
 
   if (!rates || rates.length === 0) {
     ratesTitle.textContent = 'No shipping rates available for this address.';
     ratesBox.style.display = 'block';
-    if (cartShippingEl) cartShippingEl.textContent = '—';
+    refreshTotalsDisplay();
     return;
   }
 
@@ -163,7 +158,7 @@ function renderShippingRates(rates) {
   }
 
   for (const rate of rates) {
-    const currencyCode = (rate.cost && rate.cost.currencyCode) || 'USD';
+    const currencyCode = (rate.cost && rate.cost.currencyCode) || 'GBP';
     const amount = rate.cost ? parseFloat(rate.cost.amount) : 0;
 
     const li = document.createElement('li');
@@ -308,9 +303,9 @@ function initCartPageQuantityHandlers() {
 
     const currentQty = parseInt(btn.dataset.qty, 10) || 1;
     const isDecrease = btn.classList.contains('quantity-decrease');
+    // Reaching 0 is deliberate: Shopify removes the line, and at a quantity of
+    // one "−" is the only way to take the item out of the bag.
     const newQty = isDecrease ? currentQty - 1 : currentQty + 1;
-
-    if (isDecrease && currentQty <= 1) return;
 
     // Disable both steppers for this item while updating
     const wrapper = btn.closest('.cart-item-quantity');
@@ -334,25 +329,25 @@ function refreshTotalsDisplay() {
 
   const cart = window.cartManager.getCart();
   if (!cart) {
-    if (cartSubtotalEl) cartSubtotalEl.textContent = window.formatPrice(0, 'USD');
+    if (cartSubtotalEl) cartSubtotalEl.textContent = window.formatPrice(0, 'GBP');
     if (cartShippingEl) cartShippingEl.textContent = 'Calculated at checkout';
-    if (cartTotalEl) cartTotalEl.textContent = window.formatPrice(0, 'USD');
+    if (cartTotalEl) cartTotalEl.textContent = window.formatPrice(0, 'GBP');
     return;
   }
 
-  const subtotalAmount = (cart.cost && cart.cost.subtotalAmount) ? cart.cost.subtotalAmount : null;
-  const subtotal = subtotalAmount ? { amount: subtotalAmount.amount, currencyCode: subtotalAmount.currencyCode } : { amount: window.cartManager.getTotal(), currencyCode: window.cartManager.getCurrency() };
-
+  const subtotal = window.cartManager.getSubtotal();
   if (cartSubtotalEl) {
     cartSubtotalEl.textContent = window.formatPrice(parseFloat(subtotal.amount || 0), subtotal.currencyCode);
   }
 
   const shipping = window.cartManager.getShippingAmount();
   if (cartShippingEl) {
-    if (parseFloat(shipping.amount) > 0) {
-      cartShippingEl.textContent = window.formatPrice(parseFloat(shipping.amount), shipping.currencyCode);
-    } else {
+    if (!shipping) {
       cartShippingEl.textContent = 'Calculated at checkout';
+    } else if (parseFloat(shipping.amount) === 0) {
+      cartShippingEl.textContent = 'Free';
+    } else {
+      cartShippingEl.textContent = window.formatPrice(parseFloat(shipping.amount), shipping.currencyCode);
     }
   }
 

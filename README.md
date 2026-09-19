@@ -40,7 +40,9 @@ public/                npm run pages OUTPUT — do not hand-edit the .html here
   css/  js/  assets/   static front end, plain vanilla JS
 data/                  local JSON mirror of custom orders / reviews / subscribers / webhook payloads
 design/                source artwork that public/ only ever holds derivatives of
-  logo-source.jpg      the 2000x2000 brand lockup; logo-mark.png is cropped from it
+  EmmLuxuryHair.svg    the 2000x2000 brand lockup as supplied; logo-mark.png,
+                       apple-touch-icon.png and favicon.png are all cropped from
+                       the same black brand square inside it
   payment-sprite.svg   13 payment logos; 11 are cut into payment-icons.png (the
                        source's `discover` symbol is a shopping bag, not that card)
   hero/                the five full-size hero photographs
@@ -77,12 +79,14 @@ A source that is not in that map — the product and collection templates, the
 admin shell — is read as a base and never copied out, which is how a page that
 only works on one host stays off the other.
 
-`npm run smoke` boots the server on port 4399 and runs 42 checks — that
+`npm run smoke` boots the server on port 4399 and runs 43 checks — that
 the committed files in `public/` are fully built and every sitemap URL has a file
 behind it, that each page renders with its chrome and no unexpanded marker, that
 the hamburger, the small-screen nav panel, its CSS and `header-nav.js` still agree
 with each other, that the newsletter box, its confirmation dialog, `newsletter.js`
-and `/api/subscribers` still match the table in `supabase/schema.sql`, that legacy URLs 301 and unknown
+and `/api/subscribers` still match the table in `supabase/schema.sql`, that the
+`/api/rates` route, `api.js`, `shared.js` and the `.price-approx` styles still
+describe the same local-currency hint, that legacy URLs 301 and unknown
 URLs 404, that non-canonical
 hostnames hand over without bouncing `/api` or the admin queue, that `/api/config`
 leaks no secret, and that the queue refuses an unauthenticated caller. Nothing is
@@ -185,11 +189,57 @@ one does.
 ### Images
 
 Nothing in `public/assets` is hand-edited. `npm run assets` regenerates the logo
-mark, the apple-touch icon, the hero's `-480/-800/-1100` WebP+JPEG pairs and the
-payment badge strip from the sources in `design/`. The originals stay there, not
+mark, the apple-touch icon, the favicon, the hero's `-480/-800/-1100` WebP+JPEG
+pairs and the payment badge strip from the sources in `design/`. All three brand
+images are the same black square cropped out of `design/EmmLuxuryHair.svg` at
+different sizes. The originals stay there, not
 in `public/`, so the browser-facing folder only ever contains files something
 actually links to. sharp is a devDependency for this reason, and Render's build
 installs with `--omit=dev`.
+
+### Prices in the shopper's own money
+
+The store is a British store: Shopify charges in pounds, the cart is a GBP cart,
+and nothing here changes that. What `shared.js` adds is a second line under each
+price — `≈ $669` — for a visitor whose browser reports a region that prices in
+something else. A customer in Lagos or Toronto sees roughly what the number
+means without doing sums, and a customer in Leeds sees nothing extra at all.
+
+The rate comes from `GET /api/rates`, which reads open.er-api.com (no key,
+refreshed daily) and caches the answer for a day. It is fetched by Render
+rather than by the page because the storefront's Content-Security-Policy only
+allows connections to this API, and widening it for a decorative figure would
+apply to every page. If the call fails, or the visitor's region is not in the
+map, or the amount is zero, no hint appears — the pound price is never replaced,
+restyled or removed by any of this, and the cart page spells out that the ≈
+figures are guidance only.
+
+### What the bag total includes
+
+The Order Summary on `/cart` reads as arithmetic: Subtotal, then Shipping, then a
+Total that already contains it. `cost.totalAmount` from Shopify is the figure
+behind Total, and measuring it on this store is what settled the question —
+a £500.00 bag with a £6.99 Express rate came back as £506.99, so shipping is
+never added to it again here. The Shipping row has three states on purpose:
+"Calculated at checkout" before the shopper estimates, `Free` when the chosen
+rate costs nothing, and the amount when it costs something.
+
+`server/shopify/cartFields.js` holds the one cart selection all five cart
+mutations answer with. That matters because the browser keeps whichever cart a
+mutation last returned: if a quantity change answered with less than an address
+quote did, the rate the shopper picked vanished from their totals. It also keeps
+the GraphQL honest in one place — the Storefront API has already renamed
+`cartDeliveryAddressUpdate` to `cartDeliveryAddressesReplace`, dropped
+`totalShippingAmount`/`totalTaxAmount`/`totalDutyAmount` from `CartCost`, and
+moved a delivery option's price to `estimatedCost`, and one unknown field fails
+the whole mutation, which is how shipping stopped showing anything at all.
+`npm run verify:shopify` quotes a destination, picks the paid rate and changes
+the quantity against the live store; `npm run smoke` guards the wiring statically.
+
+One limit is the Shopify setup, not the code: only a United Kingdom destination
+comes back with rates today, so every other country reads "No shipping rates
+available for this address" until the store's shipping zones and inventory
+locations cover it (Shopify admin → Settings → Shipping and delivery).
 
 ## Orders and enquiries
 

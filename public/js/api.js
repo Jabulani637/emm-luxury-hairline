@@ -168,6 +168,10 @@ const countriesAPI = {
   getCountries: () => apiFetch('/countries'),
 };
 
+const ratesAPI = {
+  getRates: () => apiFetch('/rates'),
+};
+
 const contactAPI = {
   submit: (payload) => apiFetch('/contact', { method: 'POST', body: JSON.stringify(payload) }),
 };
@@ -182,6 +186,7 @@ window.productsAPI    = productsAPI;
 window.collectionsAPI = collectionsAPI;
 window.cartAPI        = cartAPI;
 window.countriesAPI   = countriesAPI;
+window.ratesAPI       = ratesAPI;
 window.contactAPI     = contactAPI;
 window.subscribersAPI = subscribersAPI;
 window.__resolveApiBase = resolveApiBase; // for debugging
