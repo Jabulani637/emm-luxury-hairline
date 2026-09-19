@@ -89,6 +89,10 @@ async function main() {
   clearGenerated('collections');
 
   // 1. Fixed pages: expand the shared chrome, then inject this page's metadata.
+  //    Sources that are not in PAGES — the product and collection bases and the
+  //    admin shell — stay out of the output. They are templates for the pages
+  //    below and a page Express renders per request; on a static host they would
+  //    be un-indexable shells with no title or canonical of their own.
   const templates = new Map();
   for (const source of htmlFiles(SOURCES)) {
     templates.set(path.relative(SOURCES, source).replace(/\\/g, '/'), expandPage(fs.readFileSync(source, 'utf8')));
@@ -96,7 +100,6 @@ async function main() {
   for (const [route, page] of Object.entries(meta.PAGES)) {
     if (!templates.has(page.file)) throw new Error(`PAGES['${route}'] refers to ${page.file}, which has no source file`);
   }
-  for (const [relative, html] of templates) written.push(writePage(relative, html));
   for (const [route, page] of Object.entries(meta.PAGES)) {
     written.push(writePage(page.file, injectHead(templates.get(page.file), meta.staticMeta(route))));
   }

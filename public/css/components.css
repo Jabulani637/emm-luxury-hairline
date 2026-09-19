@@ -454,16 +454,22 @@
     justify-content: flex-end;
 }
 
-/* One 42x28 cell per badge, all twelve in a single 504x28 strip. The strip is
-   transparent and each logo is drawn with a 3px margin inside its cell, which is
-   what the white tile below shows through — padding on the element itself would
-   move the background origin and misalign every position. */
+/* One 42x28 cell per badge, all eleven in a single 462x28 strip. The strip is
+   flattened on white by npm run assets — most of these marks are drawn white
+   themselves and disappear on the burgundy footer — and each logo sits with a
+   3px margin inside its cell, which is why the positions are exact multiples of
+   the cell and any padding on the element would misalign all of them.
+
+   Longhands, not the `background:` shorthand: this two-class rule out-specifies
+   the single-class positions below it, and the shorthand resets
+   background-position — which painted every badge with the first cell. */
 .payment-icons .payment-icon {
     width: 42px;
     height: 28px;
     display: inline-block;
-    background: #fff url('/assets/payment-icons.png') no-repeat 0 0;
-    background-size: 504px 28px;
+    background-image: url('/assets/payment-icons.png');
+    background-repeat: no-repeat;
+    background-size: 462px 28px;
     border-radius: 4px;
 }
 
@@ -478,7 +484,6 @@
 .payment-icon--klarna    { background-position: -336px 0; }
 .payment-icon--maestro   { background-position: -378px 0; }
 .payment-icon--diners    { background-position: -420px 0; }
-.payment-icon--discover  { background-position: -462px 0; }
 
 
 /* ----------------------------

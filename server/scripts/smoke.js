@@ -141,9 +141,6 @@ function checkNoBom() {
  * disk rather than only after a server has passed through them.
  */
 function checkBakedPages() {
-  // products/product.html and collections/collection.html are templates Express
-  // renders through; the admin shell is noindex and holds no data.
-  const TEMPLATES = ['products/product.html', 'collections/collection.html', 'admin/reviews.html'];
   // Links the browser never follows as-is: /api lives on another host, and
   // /cart/c/… is a Shopify address shared.js rewrites before it is used.
   const NOT_A_PAGE = /^\/(api|webhooks|cart\/)/;
@@ -173,7 +170,6 @@ function checkBakedPages() {
     const html = fs.readFileSync(full, 'utf8');
     if (/<!--#|<!--if\s|<!--\/if/.test(html)) problems.push(`${rel}: unexpanded partial marker`);
     if (/localhost|127\.0\.0\.1/.test(html)) problems.push(`${rel}: development hostname baked in`);
-    if (TEMPLATES.includes(rel)) continue;
     if (!/rel="canonical"/.test(html)) problems.push(`${rel}: no canonical URL`);
     if (!/<meta name="description"/.test(html)) problems.push(`${rel}: no meta description`);
     for (const m of html.matchAll(/href="(\/[^"?#]*)"/g)) {
@@ -188,6 +184,9 @@ function checkBakedPages() {
   const sitemapPath = path.join(ROOT, 'public', 'sitemap.xml');
   if (!fs.existsSync(robotsPath)) problems.push('public/robots.txt is missing');
   if (!fs.existsSync(sitemapPath)) problems.push('public/sitemap.xml is missing');
+  if (fs.existsSync(path.join(ROOT, 'public', 'admin'))) {
+    problems.push('public/admin exists: the moderation queue belongs to the API host, which owns its sign-in cookie');
+  }
 
   if (fs.existsSync(sitemapPath)) {
     const sitemap = fs.readFileSync(sitemapPath, 'utf8');
@@ -204,6 +203,56 @@ function checkBakedPages() {
   check(`${pages.length} committed pages are fully built, with no dead internal links`,
     problems.length === 0, problems.slice(0, 6).join(', ')
       || 'markers, canonicals, links and sitemap entries all present');
+}
+
+/**
+ * The footer paints each badge as one 42x28 cell of a strip that is built at 2x,
+ * so three things have to stay in step: the spans in the footer partial, the
+ * positions in the CSS, and the cells actually present in the PNG. Drift is
+ * silent — a badge shows the wrong logo or a blank tile — and this is the only
+ * place it can be caught.
+ */
+function checkPaymentStrip() {
+  const CELL = 42;
+  const png = path.join(ROOT, 'public', 'assets', 'payment-icons.png');
+  if (!fs.existsSync(png)) {
+    check('footer payment badges match the sprite', false, 'public/assets/payment-icons.png is missing');
+    return;
+  }
+  // PNG signature, then IHDR: width and height as big-endian uint32s at 16 and 20.
+  const header = fs.readFileSync(png).subarray(16, 24);
+  const sheet = { width: header.readUInt32BE(0), height: header.readUInt32BE(4) };
+
+  const css = fs.readFileSync(path.join(ROOT, 'public', 'css', 'components.css'), 'utf8');
+  const footer = fs.readFileSync(path.join(ROOT, 'server', 'views', 'partials', 'footer.html'), 'utf8');
+  const rule = (css.match(/\.payment-icons \.payment-icon \{([^}]*)\}/) || [, ''])[1];
+  const sized = (rule.match(/background-size:\s*(\d+)px (\d+)px/) || []).slice(1).map(Number);
+  const positions = [...css.matchAll(/\.payment-icon--([a-z]+)\s*\{\s*background-position:\s*(-?\d+)(?:px)? 0/g)];
+
+  const problems = [];
+  // The shorthand resets background-position, and this rule out-specifies the
+  // per-badge positions — which is how every tile ended up showing Visa.
+  if (/(^|[;{\s])background:\s/.test(rule)) {
+    problems.push('.payment-icon sets the `background:` shorthand, which resets every badge position');
+  }
+  if (sized.length !== 2) problems.push('no background-size on .payment-icon');
+  else if (sized[0] !== sheet.width / 2 || sized[1] !== sheet.height / 2) {
+    problems.push(`background-size ${sized[0]}x${sized[1]} does not match half the ${sheet.width}x${sheet.height} sheet`);
+  }
+  positions.forEach(([, , offset], i) => {
+    if (Math.abs(offset) !== i * CELL) problems.push(`cell ${i + 1} is at ${offset}px, not -${i * CELL}px`);
+  });
+  const inCss = positions.map(m => m[1]);
+  const inFooter = [...footer.matchAll(/payment-icon--([a-z]+)/g)].map(m => m[1]);
+  const orphan = inCss.filter(c => !inFooter.includes(c));
+  const missing = inFooter.filter(c => !inCss.includes(c));
+  if (orphan.length) problems.push(`styled but not in the footer: ${orphan.join(', ')}`);
+  if (missing.length) problems.push(`in the footer but unstyled: ${missing.join(', ')}`);
+  const cells = sheet.width / (CELL * 2);
+  if (cells !== inCss.length) problems.push(`the sheet holds ${cells} cells, the CSS names ${inCss.length}`);
+
+  check(`footer payment badges match the sprite (${inFooter.length} badges)`,
+    problems.length === 0, problems.slice(0, 3).join(', ') || 'spans, positions and sheet cells all agree');
 }
 
 /** A storefront page: real header and footer, no unexpanded partial markers. */
@@ -245,6 +294,7 @@ async function json(name, pathname, assert) {
 async function run(server) {
   checkNoBom();
   checkBakedPages();
+  checkPaymentStrip();
 
   for (const [name, pathname, opts] of [
     ['homepage', '/', { navActive: true, jsonLd: true }],

@@ -17,7 +17,11 @@ const fs = require('fs');
 const path = require('path');
 const router = express.Router();
 
-const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
+// Page sources, not the built copies in public/: those exist for the static
+// host, are only refreshed by `npm run pages`, and carry no partial markers by
+// the time they are written. Expanding the source per request keeps this host
+// answering from what is in the repository right now.
+const VIEWS_DIR = path.join(__dirname, '..', 'views', 'pages');
 const cache = require('../cache');
 const reviews = require('../reviews/store');
 const { injectHead, SITE_NAME } = require('../htmlSeo');
@@ -32,7 +36,7 @@ const {
 
 function readPage(file) {
   return cache.wrap(`page:${file}`, async () => (
-    partials.expandPage(fs.readFileSync(path.join(PUBLIC_DIR, file), 'utf8'))
+    partials.expandPage(fs.readFileSync(path.join(VIEWS_DIR, file), 'utf8'))
   ), 600);
 }
 
@@ -116,9 +120,10 @@ for (const route of Object.keys(PAGES)) {
 
 // ------------------------------------------------------------ admin surface
 
-// Kept out of PAGES so it can never appear in the sitemap. The file itself
-// holds no data — every row is fetched from /api/admin/reviews, which rejects
-// requests without a signed cookie — so serving the shell leaks nothing.
+// Kept out of PAGES so it can never appear in the sitemap, and out of public/
+// so the static host never serves it: the queue signs itself in with a cookie
+// this process issues and fetches /api with relative URLs, so shell and API
+// have to be the same origin. The file itself holds no data.
 router.get('/admin/reviews', async (req, res) => {
   await sendPage(res, 'admin/reviews.html', {
     title: 'Review moderation | Emm Luxury Hair',

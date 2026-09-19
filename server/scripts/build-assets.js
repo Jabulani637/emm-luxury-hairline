@@ -18,8 +18,9 @@
  *                        hero slides. The originals are 130-233KB each and were
  *                        painted as CSS backgrounds, so a phone downloaded the
  *                        full-size JPEG for a 390px-wide box.
- *   payment-icons.png    one strip of the 12 footer badges, replacing an 85KB
- *                        SVG sprite that every page linked.
+ *   payment-icons.png    one strip of the eleven footer badges, flattened on the
+ *                        white they are shown against, replacing an 85KB SVG
+ *                        sprite that every page linked.
  */
 const fs = require('fs');
 const path = require('path');
@@ -41,10 +42,13 @@ const HERO_SOURCES = [
 ];
 const HERO_WIDTHS = [480, 800, 1100];
 
-// Footer order; webmoney and bancontact exist in the source sprite but are unused.
+// Footer order. webmoney and bancontact exist in the source sprite but are
+// unused, and so is discover: its symbol there is a generic blue shopping bag,
+// not the Discover card mark, and a badge that is not the brand it names is
+// worse on a checkout page than one fewer badge.
 const PAYMENT_ICONS = [
   'visa', 'mastercard', 'amex', 'paypal', 'applepay', 'googlepay',
-  'shop', 'unionpay', 'klarna', 'maestro', 'diners', 'discover',
+  'shop', 'unionpay', 'klarna', 'maestro', 'diners',
 ];
 const SPRITE_SOURCE = path.join(DESIGN, 'payment-sprite.svg');
 const CELL = { width: 84, height: 56 }; // the CSS tile is 42x28, built at 2x
@@ -111,12 +115,16 @@ async function buildPaymentSheet() {
     });
   }
 
+  // Flattened onto the tile's own white: most of these marks are drawn white or
+  // near-white for dark backgrounds, and against the burgundy footer they were
+  // invisible — only Visa, Amex and a few coloured ones showed. The element's
+  // border-radius still clips the image, so the corners stay round.
   const sheet = await sharp({
     create: {
       width: PAYMENT_ICONS.length * CELL.width,
       height: CELL.height,
       channels: 4,
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
+      background: { r: 255, g: 255, b: 255, alpha: 1 },
     },
   }).composite(composites).png({ palette: true, colors: 256, quality: 100, compressionLevel: 9 }).toBuffer();
 
