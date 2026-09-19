@@ -1,4 +1,5 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
   "headers": [
     {
@@ -31,31 +32,7 @@
     },
     {
       "source": "/products/product",
-      "has": [
-        {
-          "type": "query",
-          "key": "handle",
-          "value": ":handle"
-        }
-      ],
-      "destination": "/products/:handle",
-      "permanent": true
-    },
-    {
-      "source": "/products/product",
       "destination": "/collections/all",
-      "permanent": true
-    },
-    {
-      "source": "/collections/collection",
-      "has": [
-        {
-          "type": "query",
-          "key": "handle",
-          "value": ":handle"
-        }
-      ],
-      "destination": "/collections/:handle",
       "permanent": true
     },
     {

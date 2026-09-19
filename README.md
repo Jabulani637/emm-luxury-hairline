@@ -260,16 +260,22 @@ again** — run it and push, or let the Shopify webhook do it once a rebuild
 trigger exists.
 
 `vercel.json` sets `cleanUrls`, which is what makes `/products/<handle>` resolve
-to `products/<handle>.html` and 301s the old `.html` form, plus permanent
-redirects from the legacy `?handle=` addresses. An unknown path gets Vercel's own
-404 page — the status is what matters, since a soft 404 that shows the homepage
-reads to Google as duplicate content. Express answers the same URL with a branded
-404.
+to `products/<handle>.html` and 301s the `.html` form, the security headers this
+host would otherwise not send, and the redirects the page host has to answer. The
+legacy `?handle=` address goes to the full catalogue rather than resolving the
+handle: Vercel rejects a destination segment it cannot capture from a query
+string, and nothing links to those three-day-old addresses. Express still
+resolves the handle, so `/products/product.html?handle=x` works on that host.
+
+An unknown path gets Vercel's own 404 page — the status is what matters, since a
+soft 404 that shows the homepage reads to Google as duplicate content. Express
+answers the same URL with a branded 404.
 
 Two backstops remain on the Express service, for anyone who reaches it by its
 Render hostname or by `api.`/apex: it 301s document requests to the canonical
-origin while keeping `/api` and `/webhooks` answering on every hostname —
-Shopify signs each webhook against a fixed URL and does not follow redirects —
+origin while keeping `/api`, `/webhooks` and `/admin` answering on every hostname
+— Shopify signs each webhook against a fixed URL and does not follow redirects,
+and the moderation queue owns its session cookie —
 and it serves every page itself, re-injecting that page's head over the baked
 one. It also adds the `aggregateRating` the built files deliberately omit,
 because only the server can read the live review queue.
