@@ -89,16 +89,18 @@ module.exports = {
   },
 
   /**
-   * `upsert` adds PostgREST's merge-duplicates resolution, which needs a unique
-   * constraint on the table and turns a repeat insert into an update in the same
-   * request — one round trip, and no conflict error to translate.
+   * `onConflict` turns the insert into an upsert: PostgREST's merge-duplicates
+   * resolution plus the column to merge on. Naming that column is not optional —
+   * without `on_conflict` PostgREST aims at the primary key, so a row that
+   * collides on a unique column raises a 409 instead of merging.
    */
-  async insert(table, rows, { representation = true, upsert = false } = {}) {
+  async insert(table, rows, { representation = true, onConflict = null } = {}) {
     const prefer = [
       representation ? 'return=representation' : 'return=minimal',
-      upsert ? 'resolution=merge-duplicates' : null,
+      onConflict ? 'resolution=merge-duplicates' : null,
     ].filter(Boolean).join(',');
-    const { rows: out } = await request(table, { method: 'POST', data: rows, prefer });
+    const params = onConflict ? { on_conflict: onConflict } : undefined;
+    const { rows: out } = await request(table, { method: 'POST', data: rows, params, prefer });
     return out;
   },
 

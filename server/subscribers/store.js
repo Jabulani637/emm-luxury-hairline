@@ -65,12 +65,13 @@ const fileDriver = {
 
 const supabaseDriver = {
   /**
-   * merge-duplicates makes a repeat signup a no-op instead of a unique-key
-   * error, so the endpoint can answer the same way either way — which is what
-   * a visitor who has been on the list since last month should hear.
+   * Merging on the address makes a repeat signup a no-op instead of a unique-key
+   * error, and keeps the row's original created_at — the date someone first
+   * joined is the answer anyone wants, not the date they retyped their email.
+   * The endpoint can therefore reply the same way either time.
    */
   async add(email) {
-    const [created] = await supabase.insert(TABLE, { email }, { upsert: true });
+    const [created] = await supabase.insert(TABLE, { email }, { onConflict: 'email' });
     return created || { email };
   },
 };
