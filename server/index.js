@@ -132,8 +132,11 @@ app.use((req, res, next) => {
   if (host === CANONICAL_HOST) return next();
   // Webhooks are HMAC-signed against a fixed URL and Shopify never follows a
   // redirect, and the JSON API belongs to whichever host served the page.
-  // Only human-facing documents move.
-  if (/^\/(api|webhooks)(\/|\?|$)/.test(url)) return next();
+  // /admin/reviews is excused for the same reason as /api: its queue is fetched
+  // with relative URLs and authenticated by a cookie this process issues, so
+  // bounced to www it would 404 and never sign in. Only the rest of the
+  // human-facing documents move.
+  if (/^\/(api|webhooks|admin)(\/|\?|$)/.test(url)) return next();
   return res.redirect(301, `${CANONICAL_ORIGIN}${url}`);
 });
 

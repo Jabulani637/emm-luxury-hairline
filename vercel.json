@@ -1,0 +1,67 @@
+{
+  "cleanUrls": true,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; base-uri 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://cdn.shopify.com; connect-src 'self' https://api.emmluxuryhair.com; frame-ancestors 'self'; object-src 'none'"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/admin/reviews",
+      "destination": "https://api.emmluxuryhair.com/admin/reviews",
+      "permanent": true
+    },
+    {
+      "source": "/products/product",
+      "has": [
+        {
+          "type": "query",
+          "key": "handle",
+          "value": ":handle"
+        }
+      ],
+      "destination": "/products/:handle",
+      "permanent": true
+    },
+    {
+      "source": "/products/product",
+      "destination": "/collections/all",
+      "permanent": true
+    },
+    {
+      "source": "/collections/collection",
+      "has": [
+        {
+          "type": "query",
+          "key": "handle",
+          "value": ":handle"
+        }
+      ],
+      "destination": "/collections/:handle",
+      "permanent": true
+    },
+    {
+      "source": "/collections/collection",
+      "destination": "/collections/all",
+      "permanent": true
+    }
+  ]
+}

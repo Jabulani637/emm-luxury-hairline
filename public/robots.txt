@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /cart
+Disallow: /admin
+Disallow: /api/
+Disallow: /webhooks/
+
+Sitemap: https://www.emmluxuryhair.com/sitemap.xml

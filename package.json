@@ -7,6 +7,7 @@
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
     "smoke": "node server/scripts/smoke.js",
+    "pages": "node server/scripts/build-pages.js",
     "assets": "node server/scripts/build-assets.js",
     "verify:shopify": "node server/scripts/verify-shopify.js",
     "register:webhooks": "node server/scripts/register-webhooks.js",

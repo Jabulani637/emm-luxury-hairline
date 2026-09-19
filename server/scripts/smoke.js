@@ -135,6 +135,77 @@ function checkNoBom() {
   check('no source or env file starts with a UTF-8 BOM', found.length === 0, found.slice(0, 5).join(', '));
 }
 
+/**
+ * The pages in public/ are served as plain files, with nothing on the host to
+ * expand partials or inject a metadata head, so they have to be complete on
+ * disk rather than only after a server has passed through them.
+ */
+function checkBakedPages() {
+  // products/product.html and collections/collection.html are templates Express
+  // renders through; the admin shell is noindex and holds no data.
+  const TEMPLATES = ['products/product.html', 'collections/collection.html', 'admin/reviews.html'];
+  // Links the browser never follows as-is: /api lives on another host, and
+  // /cart/c/… is a Shopify address shared.js rewrites before it is used.
+  const NOT_A_PAGE = /^\/(api|webhooks|cart\/)/;
+
+  /** How the static host maps a clean URL onto a file. */
+  const hasPage = url => {
+    const base = url.replace(/^\//, '').replace(/\/$/, '') || 'index';
+    return ['', '.html'].some(ext => fs.existsSync(path.join(ROOT, 'public', base + ext)))
+      || fs.existsSync(path.join(ROOT, 'public', base, 'index.html'));
+  };
+
+  const problems = [];
+  const pages = [];
+  const walk = dir => {
+    if (!fs.existsSync(dir)) return;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) { walk(full); continue; }
+      if (entry.name.endsWith('.html')) pages.push(full);
+    }
+  };
+  walk(path.join(ROOT, 'public'));
+
+  const links = new Map();
+  for (const full of pages) {
+    const rel = path.relative(ROOT, full).replace(/\\/g, '/').replace(/^public\//, '');
+    const html = fs.readFileSync(full, 'utf8');
+    if (/<!--#|<!--if\s|<!--\/if/.test(html)) problems.push(`${rel}: unexpanded partial marker`);
+    if (/localhost|127\.0\.0\.1/.test(html)) problems.push(`${rel}: development hostname baked in`);
+    if (TEMPLATES.includes(rel)) continue;
+    if (!/rel="canonical"/.test(html)) problems.push(`${rel}: no canonical URL`);
+    if (!/<meta name="description"/.test(html)) problems.push(`${rel}: no meta description`);
+    for (const m of html.matchAll(/href="(\/[^"?#]*)"/g)) {
+      const url = m[1];
+      if (url === '/' || NOT_A_PAGE.test(url) || /\.(css|js|png|jpe?g|svg|ico|webp|txt|xml|json)$/.test(url)) continue;
+      if (!hasPage(url) && !links.has(url)) links.set(url, rel);
+    }
+  }
+  for (const [url, seenIn] of links) problems.push(`${url} is linked from ${seenIn} but has no page`);
+
+  const robotsPath = path.join(ROOT, 'public', 'robots.txt');
+  const sitemapPath = path.join(ROOT, 'public', 'sitemap.xml');
+  if (!fs.existsSync(robotsPath)) problems.push('public/robots.txt is missing');
+  if (!fs.existsSync(sitemapPath)) problems.push('public/sitemap.xml is missing');
+
+  if (fs.existsSync(sitemapPath)) {
+    const sitemap = fs.readFileSync(sitemapPath, 'utf8');
+    if (!fs.existsSync(robotsPath) || !/sitemap\.xml/.test(fs.readFileSync(robotsPath, 'utf8'))) {
+      problems.push('robots.txt does not advertise the sitemap');
+    }
+    for (const m of sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)) {
+      const rel = m[1].replace(/^https?:\/\/[^/]+/, '').replace(/^\//, '').replace(/\/$/, '');
+      const target = path.join(ROOT, 'public', `${rel || 'index'}.html`);
+      if (!fs.existsSync(target)) problems.push(`sitemap lists ${m[1]}, which has no file`);
+    }
+  }
+
+  check(`${pages.length} committed pages are fully built, with no dead internal links`,
+    problems.length === 0, problems.slice(0, 6).join(', ')
+      || 'markers, canonicals, links and sitemap entries all present');
+}
+
 /** A storefront page: real header and footer, no unexpanded partial markers. */
 async function page(name, pathname, { navActive = false, drawer = true, jsonLd = false } = {}) {
   const r = await get(pathname);
@@ -173,6 +244,7 @@ async function json(name, pathname, assert) {
 
 async function run(server) {
   checkNoBom();
+  checkBakedPages();
 
   for (const [name, pathname, opts] of [
     ['homepage', '/', { navActive: true, jsonLd: true }],
@@ -232,6 +304,12 @@ async function run(server) {
   }
   const canonical = await hostRequest(new URL(CANONICAL).hostname, '/pages/faqs');
   check('canonical host serves pages without redirecting', canonical.status === 200, `status ${canonical.status}`);
+
+  // The queue signs in with a cookie this process issues and reads its rows from
+  // a relative /api path, so bouncing it to www would leave an empty shell.
+  const adminOnApi = await hostRequest('api.emmluxuryhair.com', '/admin/reviews');
+  check('admin queue stays on the host that owns its cookie',
+    adminOnApi.status === 200, `status ${adminOnApi.status} ${adminOnApi.location || ''}`);
 
   const missing = await get('/definitely-not-a-page');
   check('unknown URL 404s instead of showing the homepage', missing.status === 404, `status ${missing.status}`);
