@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Order — Emm Luxury Hair</title>
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
+</head>
+<body>
+    <!--#header active=custom-order cart=drawer-->
+
+    <main>
+        <section class="custom-order-page">
+            <div class="custom-order-hero">
+                <a href="/collections/all" class="back-link">← Back to shop</a>
+                <h1>Request a Custom Order</h1>
+                <p class="page-sub">The style you love is currently sold out, but we'd love to make one just for you. Tell us your preferences and we'll reply with availability and pricing within 24 hours.</p>
+            </div>
+
+            <div class="custom-order-grid">
+                <aside class="custom-order-summary" id="custom-order-summary">
+                    <h2>Product requested</h2>
+                    <div class="summary-product" id="summary-product">
+                        <p class="no-product-selected">Loading order details…</p>
+                    </div>
+                    <div class="summary-notes">
+                        <p><strong>What happens next?</strong></p>
+                        <ol>
+                            <li>We confirm stock availability, customizations, and production lead time.</li>
+                            <li>We email you a final quote and a secure Shopify payment link.</li>
+                            <li>You pay via the link and we start crafting your piece.</li>
+                        </ol>
+                    </div>
+                </aside>
+
+                <form class="custom-order-form" id="custom-order-form" novalidate>
+                    <input type="hidden" name="productHandle" id="f-product-handle">
+                    <input type="hidden" name="productTitle" id="f-product-title">
+                    <input type="hidden" name="variantId" id="f-variant-id">
+                    <input type="hidden" name="variantTitle" id="f-variant-title">
+                    <input type="hidden" name="price" id="f-price">
+                    <input type="hidden" name="currency" id="f-currency">
+
+                    <fieldset class="form-section">
+                        <legend>Your Contact Details</legend>
+
+                        <div class="form-row form-row--two">
+                            <div class="form-group">
+                                <label for="f-name">Full name <span class="req">*</span></label>
+                                <input type="text" id="f-name" name="name" class="form-input" required placeholder="Jane Doe">
+                            </div>
+                            <div class="form-group">
+                                <label for="f-email">Email <span class="req">*</span></label>
+                                <input type="email" id="f-email" name="email" class="form-input" required placeholder="you@example.com">
+                            </div>
+                        </div>
+
+                        <div class="form-row form-row--two">
+                            <div class="form-group">
+                                <label for="f-phone">Phone (optional)</label>
+                                <input type="tel" id="f-phone" name="phone" class="form-input" placeholder="+27 82 000 0000">
+                            </div>
+                            <div class="form-group">
+                                <label for="f-country">Country</label>
+                                <select id="f-country" name="country" class="form-select">
+                                    <option value="">Select country</option>
+                                </select>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="form-section">
+                        <legend>Custom Order Details</legend>
+
+                        <div class="form-row form-row--two">
+                            <div class="form-group">
+                                <label for="f-desired-style">Desired style</label>
+                                <input type="text" id="f-desired-style" name="desiredStyle" class="form-input" placeholder="e.g. Body wave lace frontal">
+                            </div>
+                            <div class="form-group">
+                                <label for="f-quantity">Desired quantity</label>
+                                <input type="number" id="f-quantity" name="quantity" min="1" value="1" class="form-input">
+                            </div>
+                        </div>
+
+                        <div class="form-row form-row--two">
+                            <div class="form-group">
+                                <label for="f-length">Preferred length</label>
+                                <input type="text" id="f-length" name="length" class="form-input" placeholder="e.g. 24 inch, 22 inch">
+                            </div>
+                            <div class="form-group">
+                                <label for="f-color">Preferred color</label>
+                                <input type="text" id="f-color" name="color" class="form-input" placeholder="e.g. Natural black, #1B, Ombre">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="f-message">Additional details (texture, cap size, delivery date, etc.)</label>
+                            <textarea id="f-message" name="message" rows="5" class="form-input" placeholder="Tell us anything we should know about your custom piece."></textarea>
+                        </div>
+                    </fieldset>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-large btn-block" id="submit-order-btn">
+                            Submit Custom Order Request
+                        </button>
+                        <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <!--#footer active=custom-order-->
+
+    <!--#cart-drawer-->
+<script src="/js/api.js" defer></script>
+    <script src="/js/shared.js" defer></script>
+    <script src="/js/cart.js" defer></script>
+    <script src="/js/custom-order.js" defer></script>
+    <script src="/js/search.js" defer></script>
+    <script src="/js/header-nav.js" defer></script>
+    <script src="/js/nav.js" defer></script>
+</body>
+</html>

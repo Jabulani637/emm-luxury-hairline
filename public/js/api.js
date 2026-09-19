@@ -3,8 +3,9 @@
  *
  * This file is the only place on the frontend that decides where the API lives.
  * Resolution order:
- *   1. A relative /api, when the page is served from one of the live
- *      emmluxuryhair.com hosts — each of them runs this app, which owns /api.
+ *   1. The production API origin, when the page is served from one of the live
+ *      emmluxuryhair.com hosts — the pages are static files hosted apart from
+ *      the API there, so a relative path would be wrong.
  *   2. window.APP_CONFIG.API_BASE_URL, if something set it before this loaded.
  *   3. GET /api/config, whose apiBaseUrl comes from the server's BACKEND_URL —
  *      collapsed back to a relative /api whenever it names the origin the page
@@ -32,9 +33,9 @@ async function resolveApiBase() {
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname.toLowerCase();
     if (hostname === 'api.emmluxuryhair.com' || hostname === 'www.emmluxuryhair.com' || hostname === 'emmluxuryhair.com') {
-      // All three are served by the same app that owns /api, so a relative path
-      // is correct and saves the browser a cross-origin round trip.
-      _apiBase = '/api';
+      // The pages are hosted as static files, separately from the API, so a
+      // relative /api would hit the file host and 404. Name the API origin.
+      _apiBase = 'https://api.emmluxuryhair.com/api';
       window.APP_CONFIG = window.APP_CONFIG || {};
       window.APP_CONFIG.API_BASE_URL = _apiBase;
       return _apiBase;
