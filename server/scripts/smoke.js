@@ -289,6 +289,59 @@ function checkNewsletter() {
 }
 
 /**
+ * The confirmation popup spans three files the same way the hamburger does: the
+ * page holds the dialog, components.css dresses it, newsletter.js opens it. Any
+ * one of those names drifting leaves a visitor who subscribed successfully
+ * staring at a form that appears to do nothing.
+ */
+function checkSignupDialog() {
+  const read = (...parts) => fs.readFileSync(path.join(ROOT, ...parts), 'utf8');
+  const pageHtml = read('server', 'views', 'pages', 'index.html');
+  const script = read('public', 'js', 'newsletter.js');
+  const css = read('public', 'css', 'components.css');
+
+  const problems = [];
+  const dialogTag = (pageHtml.match(/<dialog class="signup-modal"[^>]*>/) || [''])[0];
+  const labelledBy = (dialogTag.match(/aria-labelledby="([^"]+)"/) || [, ''])[1];
+
+  if (!dialogTag) {
+    problems.push('the page has no <dialog class="signup-modal">');
+  } else if (!labelledBy || !new RegExp(`id="${labelledBy}"`).test(pageHtml)) {
+    problems.push(`aria-labelledby="${labelledBy}" names a heading that is not in the page`);
+  }
+
+  // Every class the script reaches for has to exist in the markup and be styled.
+  for (const cls of ['signup-modal-message', 'signup-modal-close', 'signup-modal-done']) {
+    if (!new RegExp(`class="[^"]*\\b${cls}\\b[^"]*"`).test(pageHtml)) problems.push(`newsletter.js looks for .${cls}, which the page never renders`);
+    if (!css.includes(`.${cls}`)) problems.push(`.${cls} has no CSS`);
+  }
+
+  if (!/\.signup-modal::backdrop/.test(css)) problems.push('the dimmed page behind the dialog is never styled');
+  const base = (css.match(/\.signup-modal \{[\s\S]*?\n\}/) || [''])[0];
+  if (/visibility/.test(base)) {
+    problems.push('.signup-modal animates visibility, and the browser refuses to focus a panel still marked hidden');
+  }
+
+  if (!/showModal\(\)/.test(script)) problems.push('newsletter.js never opens the dialog modally, so the keyboard is not trapped in it');
+  if (!/body:has\(\.signup-modal\[open\]\)/.test(css)) problems.push('nothing stops the page scrolling behind the open dialog');
+  if (/signup-modal-open/.test(script) || /body\.signup-modal-open/.test(css)) problems.push('a script still toggles a scroll-lock class the CSS handles on its own');
+
+  // A button inside the form would submit it; a stray promise would repeat the
+  // mistake the popup exists to replace.
+  if (pageHtml.indexOf('<dialog class="signup-modal"') < pageHtml.indexOf('</form>')) {
+    problems.push('the dialog markup sits inside the form, so its buttons would submit it');
+  }
+  const untyped = (pageHtml.match(/<button(?![^>]*type="button")[^>]*class="[^"]*signup-modal/g) || []).length;
+  if (untyped) problems.push(`${untyped} dialog button(s) default to type="submit"`);
+  if (/15%|discount|voucher/i.test((pageHtml.match(/<dialog class="signup-modal"[\s\S]*?<\/dialog>/) || [''])[0])) {
+    problems.push('the confirmation copy promises a discount no code in this repo can issue');
+  }
+
+  check('newsletter confirmation popup (markup, styles, script agree)',
+    problems.length === 0, problems.slice(0, 4).join(', ') || 'dialog opens, closes and returns focus');
+}
+
+/**
  * Below 1024px the header nav is reachable only through the hamburger, and
  * the wiring runs across four files: the partial holds the button and the
  * panel, main.css and components.css reveal them, header-nav.js ties them
@@ -393,6 +446,7 @@ async function run(server) {
   checkBakedPages();
   checkPaymentStrip();
   checkNewsletter();
+  checkSignupDialog();
   checkMobileNav();
 
   for (const [name, pathname, opts] of [

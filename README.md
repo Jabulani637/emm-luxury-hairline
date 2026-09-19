@@ -77,12 +77,12 @@ A source that is not in that map — the product and collection templates, the
 admin shell — is read as a base and never copied out, which is how a page that
 only works on one host stays off the other.
 
-`npm run smoke` boots the server on port 4399 and runs 41 checks — that
+`npm run smoke` boots the server on port 4399 and runs 42 checks — that
 the committed files in `public/` are fully built and every sitemap URL has a file
 behind it, that each page renders with its chrome and no unexpanded marker, that
 the hamburger, the small-screen nav panel, its CSS and `header-nav.js` still agree
-with each other, that the newsletter box, `newsletter.js` and `/api/subscribers`
-still match the table in `supabase/schema.sql`, that legacy URLs 301 and unknown
+with each other, that the newsletter box, its confirmation dialog, `newsletter.js`
+and `/api/subscribers` still match the table in `supabase/schema.sql`, that legacy URLs 301 and unknown
 URLs 404, that non-canonical
 hostnames hand over without bouncing `/api` or the admin queue, that `/api/config`
 leaks no secret, and that the queue refuses an unauthenticated caller. Nothing is
@@ -252,9 +252,11 @@ addresses yet.**
 A hidden `website` field catches bots: filled in, the request answers as if it
 worked and stores nothing. Addresses are trimmed, lowercased and upserted, so the
 same person signing up twice stays one row. Ten signups per visitor per hour.
-With Supabase unconfigured the list goes to `data/subscribers/subscribers.json`,
-which a deploy erases — `/api/health` reports which one is live as
-`subscribersBackend`.
+A confirmed signup is answered with a native `<dialog>`, and the sentence inside
+it is the endpoint's own `message`, so the popup can never claim more than the
+route actually did. With Supabase unconfigured the list goes to
+`data/subscribers/subscribers.json`, which a deploy erases — `/api/health`
+reports which one is live as `subscribersBackend`.
 
 ## Deploying
 

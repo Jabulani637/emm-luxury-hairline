@@ -127,6 +127,18 @@
             </form>
             <p class="newsletter-note form-status" role="status" aria-live="polite"></p>
         </section>
+
+        <!-- Newsletter confirmation. newsletter.js opens this with showModal()
+             after a successful POST; the paragraph is the server's own wording,
+             so the two can never disagree about what happens next. A native
+             dialog is what keeps the keyboard inside it and Escape closing it. -->
+        <dialog class="signup-modal" aria-labelledby="signup-modal-title">
+            <button type="button" class="signup-modal-close" aria-label="Close">&times;</button>
+            <span class="signup-modal-tick" aria-hidden="true">&#10003;</span>
+            <h3 id="signup-modal-title">You are on the list</h3>
+            <p class="signup-modal-message">We will write to you when new pieces arrive.</p>
+            <button type="button" class="btn btn-primary signup-modal-done">Done</button>
+        </dialog>
     </main>
 
     <!--#footer active=home-->
