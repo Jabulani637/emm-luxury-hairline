@@ -3,6 +3,7 @@ const { getProducts } = require('../shopify/queries/getProducts');
 const { getProduct } = require('../shopify/queries/getProduct');
 const { shopDomain } = require('../shopify/env');
 const { shopifyFetch } = require('../shopify/client');
+const { isAdminConfigured, shopifyAdminFetch } = require('../shopify/admin/client');
 const { CART_FIELDS } = require('../shopify/cartFields');
 const { cartCreate } = require('../shopify/mutations/cartCreate');
 const { cartLinesUpdate } = require('../shopify/mutations/cartLinesUpdate');
@@ -95,6 +96,34 @@ async function checkCartAndShipping(variantId) {
     `bag ${bumpedTotal} vs checkout ${money(atCheckout.cost.totalAmount)}`);
 }
 
+/**
+ * Whether the Admin token can actually do the two things this site asks it to.
+ *
+ * `/api/health` only reports that a token is present, and a token can be real,
+ * authenticate cleanly and still be forbidden from everything: Shopify answers a
+ * missing scope with "Access denied for draftOrders field" rather than a login
+ * failure. Custom orders need draft orders and webhook registration needs
+ * webhooks, and since a write scope always carries its read scope, reading one
+ * field from each proves the grant without creating anything.
+ */
+async function checkAdminAccess() {
+  if (!isAdminConfigured()) {
+    check('Admin API: no usable token', false, 'custom orders fall back to local JSON and webhooks cannot be registered');
+    return;
+  }
+  for (const [capability, query] of [
+    ['draft orders', '{ draftOrders(first: 1) { edges { node { name } } } }'],
+    ['webhooks', '{ webhookSubscriptions(first: 1) { edges { node { topic } } } }'],
+  ]) {
+    try {
+      await shopifyAdminFetch({ query });
+      check(`Admin API scope: ${capability}`, true);
+    } catch (err) {
+      check(`Admin API scope: ${capability}`, false, err.message);
+    }
+  }
+}
+
 async function run() {
   try {
     console.log('Using SHOP:', shopDomain() || '(not configured)');
@@ -120,6 +149,8 @@ async function run() {
     } else {
       console.log('No products returned from shopify query. Ensure the store has published products and SHOPIFY_PUBLIC_ACCESS_TOKEN is a valid Storefront API token.');
     }
+
+    await checkAdminAccess();
 
     if (failures) {
       console.error(`\n${failures} check(s) failed.`);
