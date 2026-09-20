@@ -32,7 +32,7 @@ const PAGES = {
   '/pages/about': {
     file: 'pages/about.html',
     title: 'About Us — Who We Are and What We Stock | Emm Luxury Hair',
-    description: 'Emm Luxury Hair is a UK-based human hair business selling raw and virgin wigs and bundles worldwide. What we stock, the standards behind it, and how ordering works.',
+    description: 'Emm Luxury Hair is a UK-based human hair business selling raw and virgin wigs and bundles worldwide. What we stock, the standards behind it, and how to order.',
     ogType: 'website',
   },
   '/pages/reviews': {
