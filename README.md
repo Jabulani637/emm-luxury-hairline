@@ -55,6 +55,29 @@ vercel.json            frontend hosting: clean URLs, the security headers and th
 render.yaml            Render blueprint: service settings and the env var list
 ```
 
+## Key Constraints
+
+The rules a change can silently break:
+
+* **`public/` is generated output.** Nothing there is hand-edited; a fix goes in
+  `server/views/pages/` or `server/pageMeta.js`, then `npm run pages` rewrites it.
+  The build refuses to run unless `FRONTEND_URL` names the real site, because it
+  writes that value into every canonical URL and sitemap entry.
+* **`cleanUrls` in `vercel.json` makes every `.html` address a 404 on Vercel**, so
+  a crawler token has to live in the page head — the Google Search Console HTML
+  *file* method cannot work on this host. `.txt` and `.xml` are unaffected, which
+  is why robots.txt, sitemap.xml and the IndexNow key file are fine.
+* **Two hosts, two trust levels.** The Storefront token is safe in a browser and
+  is served by `/api/config`; the Admin token, `WEBHOOK_SECRET` and the Supabase
+  service key stay on Render and must never reach `public/`.
+* **Render's free filesystem is wiped on every deploy.** Anything durable is in
+  Shopify or Supabase; `data/` is a convenience copy.
+* **A webhook needs the exact bytes Shopify sent**, so `/webhooks/shopify` is
+  mounted before `express.json` and is exempt from the canonical-host 301.
+* **After a rebuild, tell the engines.** `npm run indexnow` re-submits the
+  sitemap to Bing, Yandex, Seznam and Naver; Google re-crawls from the Search
+  Console sitemap on its own schedule.
+
 ## Running it locally
 
 ```bash
@@ -107,6 +130,7 @@ any change to routing, partials or the API surface.
 | `npm run verify:shopify` | real Storefront API read of 2 products |
 | `npm run verify:reviews` | confirms reviews are landing in Supabase, not on disk |
 | `npm run register:webhooks` | create/update the Shopify webhook subscriptions |
+| `npm run indexnow` | push `sitemap.xml`'s URLs to Bing, Yandex, Seznam and Naver |
 
 ## Environment
 
