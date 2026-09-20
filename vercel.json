@@ -40,11 +40,5 @@
       "destination": "/collections/all",
       "permanent": true
     }
-  ],
-  "rewrites": [
-    {
-      "source": "/google955c814804db5063.html",
-      "destination": "/google955c814804db5063"
-    }
   ]
 }
