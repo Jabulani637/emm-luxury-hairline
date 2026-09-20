@@ -120,6 +120,17 @@ function summarise(text, limit = 300) {
   return `${cut.slice(0, lastSpace > 120 ? lastSpace : limit).trim()}…`;
 }
 
+/**
+ * Store descriptions routinely open by restating the product title, and a search
+ * snippet only shows ~155 characters, so that repeat is the first thing cut.
+ */
+function leadTitle(text, title) {
+  const flat = String(text || '').replace(/\s+/g, ' ').trim();
+  const lead = String(title || '').trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  return lead ? flat.replace(new RegExp(`^${lead}\\s*[-–:,:]?\\s*`, 'i'), '') : flat;
+}
+
 function siteSchema() {
   return [
     {
@@ -167,7 +178,9 @@ function productMeta(product, rating) {
   const canonical = pageUrl('products', product.handle);
   const images = (product.images || []).map(i => i.url).filter(Boolean);
   const price = product.priceRange?.minVariantPrice;
-  const summary = summarise(product.description);
+  const plain = leadTitle(product.description, product.title);
+  const summary = summarise(plain, 155);
+  const schemaDescription = summarise(plain, 300);
 
   return {
     title: `${product.title} | ${SITE_NAME}`,
@@ -180,7 +193,7 @@ function productMeta(product, rating) {
       '@context': 'https://schema.org',
       '@type': 'Product',
       name: product.title,
-      description: summary || `${product.title} by ${SITE_NAME}.`,
+      description: schemaDescription || `${product.title} by ${SITE_NAME}.`,
       sku: product.handle,
       brand: { '@type': 'Brand', name: SITE_NAME },
       url: canonical,
