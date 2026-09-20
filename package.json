@@ -11,7 +11,8 @@
     "assets": "node server/scripts/build-assets.js",
     "verify:shopify": "node server/scripts/verify-shopify.js",
     "register:webhooks": "node server/scripts/register-webhooks.js",
-    "verify:reviews": "node server/scripts/verify-reviews.js"
+    "verify:reviews": "node server/scripts/verify-reviews.js",
+    "indexnow": "node server/scripts/ping-indexnow.js"
   },
   "keywords": [
     "shopify",
