@@ -8,6 +8,14 @@ const { isConfigured } = require('../envFlags');
 const WEBHOOK_SECRET = isConfigured(process.env.WEBHOOK_SECRET) ? process.env.WEBHOOK_SECRET.trim() : '';
 
 /**
+ * Deliveries since this process started, reported by /api/health. Render's free
+ * plan offers no way back into a finished deploy's logs, so without this the
+ * question "did Shopify ever call us?" is unanswerable. Counters and a topic
+ * name only — no order, customer or payload data is retained here.
+ */
+const deliveries = { accepted: 0, rejected: 0, secretMissing: 0, last: null };
+
+/**
  * Shopify signs the exact raw request bytes with HMAC-SHA256 and sends the
  * Base64 result in X-Shopify-Hmac-Sha256. Because it signs the raw bytes, this
  * router MUST be mounted before express.json() — once that parser runs, the
@@ -54,40 +62,80 @@ function summariseOrder(payload, topic, shopDomain) {
   };
 }
 
+// Shopify's own spellings. `orders/deleted` carries a 'd': a misnamed topic
+// simply never fires, which is indistinguishable from a webhook nobody set up.
 const ORDER_TOPICS = new Set([
   'orders/create',
   'orders/paid',
   'orders/updated',
   'orders/fulfilled',
+  'orders/partually_fulfilled',
   'orders/cancelled',
-  'orders/delete',
+  'orders/deleted',
 ]);
+
+const PRODUCT_TOPICS = new Set([
+  'products/create',
+  'products/update',
+  'products/delete',
+]);
+
+/** Product events move prices, images and sold-out badges. No customer data. */
+function summariseProduct(payload, topic, shopDomain) {
+  return {
+    topic,
+    receivedAt: new Date().toISOString(),
+    shopDomain: shopDomain || null,
+    shopifyProductId: payload.id ?? null,
+    title: payload.title || null,
+    handle: payload.handle || null,
+    status: payload.status || null,
+    variants: (payload.variants || []).map(v => ({
+      title: v.title,
+      price: v.price,
+      sku: v.sku || null,
+      inventoryQuantity: v.inventory_quantity ?? null,
+    })),
+  };
+}
 
 // `type: () => true` keeps the body a Buffer whatever content-type Shopify
 // sends, so a future switch to XML or an odd client header can't skip the parser.
 const rawParser = express.raw({ type: () => true });
 
 router.post('/shopify', rawParser, (req, res) => {
+  const topic = req.headers['x-shopify-topic'] || 'unknown';
+  const record = (outcome) => {
+    deliveries.last = { at: new Date().toISOString(), topic, outcome };
+  };
+
   if (!WEBHOOK_SECRET) {
+    deliveries.secretMissing++;
+    record('secret-missing');
     console.error('[webhooks] WEBHOOK_SECRET is not set — refusing delivery. Configure it in .env and in the Shopify webhook subscription.');
     return res.status(503).send('webhook secret not configured');
   }
 
   if (!verifySignature(req.body, req.headers['x-shopify-hmac-sha256'])) {
-    console.warn('[webhooks] Rejected delivery: signature mismatch for topic', req.headers['x-shopify-topic']);
+    deliveries.rejected++;
+    record('rejected');
+    console.warn('[webhooks] Rejected delivery: signature mismatch for topic', topic);
     return res.status(401).send('invalid signature');
   }
 
-  const topic = req.headers['x-shopify-topic'] || 'unknown';
   const shopDomain = req.headers['x-shopify-shop-domain'];
 
   let payload;
   try {
     payload = JSON.parse(req.body.toString('utf8'));
   } catch (err) {
+    record('unparseable');
     console.error('[webhooks] Signature valid but body is not JSON:', err.message);
     return res.status(400).send('unparseable payload');
   }
+
+  deliveries.accepted++;
+  record('accepted');
 
   // Acknowledge first: Shopify retries (and eventually disables) subscriptions
   // that do not answer quickly.
@@ -111,12 +159,28 @@ router.post('/shopify', rawParser, (req, res) => {
       // A placed order can change stock and sold-out badges.
       const dropped = cache.invalidate('catalog');
       console.log(`[webhooks] ${topic} for ${summary.name || summary.shopifyOrderId} — invalidated ${dropped} cached catalog responses`);
+    } else if (PRODUCT_TOPICS.has(topic)) {
+      const summary = summariseProduct(payload, topic, shopDomain);
+      const ref = summary.handle || `anon-${summary.shopifyProductId || Date.now()}`;
+      saveRecord('shopify-products', ref, summary);
+      appendEvent('shopify-events', {
+        at: summary.receivedAt,
+        topic,
+        title: summary.title,
+        handle: summary.handle,
+        status: summary.status,
+      });
+      const dropped = cache.invalidate('catalog');
+      console.log(`[webhooks] ${topic} for ${summary.title || summary.shopifyProductId} — invalidated ${dropped} cached catalog responses`);
     } else {
+      appendEvent('shopify-events', { at: deliveries.last.at, topic, handled: false });
       console.log('[webhooks] Accepted unhandled topic:', topic);
     }
   } catch (err) {
     console.error('[webhooks] Post-acknowledge handling failed for', topic, ':', err);
   }
 });
+
+router.stats = () => ({ ...deliveries, last: deliveries.last ? { ...deliveries.last } : null });
 
 module.exports = router;

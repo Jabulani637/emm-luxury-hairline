@@ -180,7 +180,8 @@ app.use('/api', apiLimiter);
 // request as already-read, which makes this router's express.raw parser skip,
 // leaving req.body as a plain object — and Shopify signs the raw request bytes,
 // so the HMAC cannot be reproduced from a parsed object.
-app.use('/webhooks', require('./routes/webhooks'));
+const webhooksRouter = require('./routes/webhooks');
+app.use('/webhooks', webhooksRouter);
 
 app.use(express.json({ limit: '32kb' }));
 
@@ -222,6 +223,7 @@ app.get('/api/health', (req, res) => {
       storefrontConfigured: isStorefrontConfigured(),
       adminConfigured: isAdminConfigured(),
       webhookSecretConfigured: isConfigured(process.env.WEBHOOK_SECRET),
+      webhookDeliveries: webhooksRouter.stats(),
       reviewsBackend: reviewsStore.backend(),
       subscribersBackend: subscribers.backend(),
       moderationEnabled: adminAuth.enabled(),
