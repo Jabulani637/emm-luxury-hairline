@@ -97,14 +97,19 @@ async function checkCartAndShipping(variantId) {
 }
 
 /**
- * Whether the Admin token can actually do the two things this site asks it to.
+ * Whether the Admin token can actually do the things this site asks it to.
  *
  * `/api/health` only reports that a token is present, and a token can be real,
  * authenticate cleanly and still be forbidden from everything: Shopify answers a
- * missing scope with "Access denied for draftOrders field" rather than a login
- * failure. Custom orders need draft orders and webhook registration needs
- * webhooks, and since a write scope always carries its read scope, reading one
- * field from each proves the grant without creating anything.
+ * missing scope with "Access denied for X field" rather than a login failure.
+ * Since a write scope always carries its read scope, reading one field per
+ * resource proves the grant without creating anything.
+ *
+ * Listing `webhookSubscriptions` is deliberately not used as the webhook test:
+ * it needs no data scope, so it answers even for an app granted nothing, while
+ * creating an `orders/*` subscription is refused without read_orders and a
+ * `products/*` one without read_products. The two reads below are the gate that
+ * `npm run register:webhooks` will actually meet.
  */
 async function checkAdminAccess() {
   if (!isAdminConfigured()) {
@@ -112,8 +117,9 @@ async function checkAdminAccess() {
     return;
   }
   for (const [capability, query] of [
-    ['draft orders', '{ draftOrders(first: 1) { edges { node { name } } } }'],
-    ['webhooks', '{ webhookSubscriptions(first: 1) { edges { node { topic } } } }'],
+    ['write_draft_orders — custom orders', '{ draftOrders(first: 1) { edges { node { name } } } }'],
+    ['read_orders — order webhooks', '{ orders(first: 1) { edges { node { name } } } }'],
+    ['read_products — product webhooks', '{ products(first: 1) { edges { node { title } } } }'],
   ]) {
     try {
       await shopifyAdminFetch({ query });

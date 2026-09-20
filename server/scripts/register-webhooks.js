@@ -29,7 +29,9 @@ const DEFAULT_TOPICS = [
   'ORDERS_FULFILLED',
   'ORDERS_PARTIALLY_FULFILLED',
   'ORDERS_CANCELLED',
-  'ORDERS_DELETED',
+  // ORDERS_DELETE, not ORDERS_DELETED: this is the subscription enum's spelling,
+  // even though the header on the delivery reads orders/deleted.
+  'ORDERS_DELETE',
   'PRODUCTS_CREATE',
   'PRODUCTS_UPDATE',
   'PRODUCTS_DELETE',
@@ -151,10 +153,15 @@ async function main() {
   }
 
   if (failures) {
-    console.error('\nSome subscriptions failed. The usual cause is the custom app missing the');
-    console.error('read_orders or write_webhooks Admin API scope. Grant them in');
-    console.error('Shopify admin → Settings → Apps and sales channels → Develop apps → your app');
-    console.error('→ Configuration → Admin API integration, then re-run this script.');
+    console.error('\nSome subscriptions failed. Shopify\'s own wording is "You do not have');
+    console.error('permission to create webhooks with <topic> topic", and it means the app');
+    console.error('lacks the *data* scope for that family, not write_webhooks:');
+    console.error('  orders/*    needs  read_orders / write_orders');
+    console.error('  products/*  needs  read_products / write_products');
+    console.error('Grant them in Shopify admin → Settings → Apps and sales channels →');
+    console.error('Develop apps → this app → Configuration → Admin API integration → Edit.');
+    console.error('Saving regenerates the Admin API access token, so copy the new shpat_ value');
+    console.error('into .env AND Render, then re-run npm run verify:shopify before this script.');
     process.exit(2);
   }
 
