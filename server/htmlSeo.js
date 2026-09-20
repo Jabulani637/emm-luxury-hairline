@@ -10,6 +10,11 @@
 
 const SITE_NAME = 'Emm Luxury Hair';
 
+// Google Search Console's property token. Public by design — Google reads it out
+// of the page source. The file method cannot work here: vercel.json sets
+// cleanUrls, so Vercel answers 404 for the literal .html URL Google requests.
+const GOOGLE_SITE_VERIFICATION = '955c814804db5063';
+
 function escapeAttr(value) {
   return String(value == null ? '' : value)
     .replace(/&/g, '&amp;')
@@ -39,7 +44,8 @@ function stripExisting(html) {
     .replace(/\s*<meta[^>]+\bproperty=["']twitter:[^"']+["'][^>]*>/i, '')
     .replace(/\s*<meta[^>]+\bname=["']twitter:[^"']+["'][^>]*>/i, '')
     .replace(/\s*<link[^>]+\brel=["']canonical["'][^>]*>/i, '')
-    .replace(/\s*<meta[^>]+\bname=["']robots["'][^>]*>/i, '');
+    .replace(/\s*<meta[^>]+\bname=["']robots["'][^>]*>/i, '')
+    .replace(/\s*<meta[^>]+\bname=["']google-site-verification["'][^>]*>/i, '');
 }
 
 /**
@@ -67,6 +73,7 @@ function injectHead(html, seo) {
     `<title>${escapeAttr(title)}</title>`,
     description ? `<meta name="description" content="${escapeAttr(description)}">` : '',
     `<meta name="robots" content="${robots}">`,
+    `<meta name="google-site-verification" content="${escapeAttr(GOOGLE_SITE_VERIFICATION)}">`,
     seo.canonical ? `<link rel="canonical" href="${escapeAttr(seo.canonical)}">` : '',
     `<meta property="og:site_name" content="${SITE_NAME}">`,
     `<meta property="og:title" content="${escapeAttr(title)}">`,
