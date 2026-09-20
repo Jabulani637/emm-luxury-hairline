@@ -94,10 +94,15 @@
 
     <!-- Main Content -->
     <main>
-      <!-- product.js renders the gallery, price, option pickers and cart
-           buttons into this container from /api/products/:handle. -->
+      <!-- The server writes this product's heading and description at the
+           marker below; product.js then replaces the whole container with the
+           gallery, price, option pickers and cart buttons it builds from
+           /api/products/:handle. -->
       <div id="product-page" class="product-page">
-        <div class="loading">Loading product…</div>
+        <div class="product-info">
+        <h1>Body Wave Human Hair Bundles</h1>
+        <p class="product-description">Raw, Virgin Quality – Bundle by Bundle Premium body wave bundles made from 100% virgin human hair. Thick from weft to tip, soft to the touch, and full of natural shine. Each bundle is machine-wefted for minimal shedding and can be washed, dyed, straightened and re-curled. Product Highlights Texture: Body wave, bouncy and defined Weight: approx. 95–100g per bundle Colours: Natural black (1B) and dark brown (#2) Material: 100% virgin human hair – cuticle aligned Weft: Double machine weft – minimal shedding, no tangling Full from root to tip – no short hairs at the top Can be bleached, dyed, straightened and curled Holds curls beautifully after washing How many bundles do I need? 12–16″ → 2 bundles 18–22″ → 3 bundles 24–26″ → 3–4 bundles For a full, voluminous look always grab one extra bundle What You Get 1 × 100g human hair bundle (length &amp; colour of your choice) Shipping Processing: 2–3 business days Fast UK dispatch from BR4</p>
+      </div>
       </div>
       <!-- Customer reviews — filled by reviews.js from approved submissions. -->
       <section id="product-reviews"></section>

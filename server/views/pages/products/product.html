@@ -16,10 +16,12 @@
 
     <!-- Main Content -->
     <main>
-      <!-- product.js renders the gallery, price, option pickers and cart
-           buttons into this container from /api/products/:handle. -->
+      <!-- The server writes this product's heading and description at the
+           marker below; product.js then replaces the whole container with the
+           gallery, price, option pickers and cart buttons it builds from
+           /api/products/:handle. -->
       <div id="product-page" class="product-page">
-        <div class="loading">Loading product…</div>
+        <!--seo-body-->
       </div>
       <!-- Customer reviews — filled by reviews.js from approved submissions. -->
       <section id="product-reviews"></section>

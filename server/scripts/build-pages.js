@@ -23,7 +23,7 @@ const ROOT = path.join(__dirname, '..', '..');
 require('dotenv').config({ path: path.join(ROOT, '.env') });
 
 const { expandPage } = require('../partials');
-const { injectHead } = require('../htmlSeo');
+const { injectSeo } = require('../htmlSeo');
 const meta = require('../pageMeta');
 const { getProducts } = require('../shopify/queries/getProducts');
 const { getCollections } = require('../shopify/queries/getCollections');
@@ -101,7 +101,7 @@ async function main() {
     if (!templates.has(page.file)) throw new Error(`PAGES['${route}'] refers to ${page.file}, which has no source file`);
   }
   for (const [route, page] of Object.entries(meta.PAGES)) {
-    written.push(writePage(page.file, injectHead(templates.get(page.file), meta.staticMeta(route))));
+    written.push(writePage(page.file, injectSeo(templates.get(page.file), meta.staticMeta(route))));
   }
 
   // 2. One page per product, from the live catalogue.
@@ -109,7 +109,7 @@ async function main() {
   for (const product of products) {
     const file = meta.pageFile('products', product.handle);
     if (!file || file === 'products/product.html') continue;
-    written.push(writePage(file, injectHead(templates.get('products/product.html'), meta.productMeta(product, null))));
+    written.push(writePage(file, injectSeo(templates.get('products/product.html'), meta.productMeta(product, null))));
   }
 
   // 3. One page per collection, plus Shopify's virtual "all".
@@ -119,7 +119,7 @@ async function main() {
     if (!file || file === 'collections/collection.html') continue;
     const built = await meta.collectionMetaFor(handle);
     if (built.unavailable) throw new Error(`Shopify did not answer for collection "${handle}" — refusing to publish a partial build`);
-    written.push(writePage(file, injectHead(templates.get('collections/collection.html'), built)));
+    written.push(writePage(file, injectSeo(templates.get('collections/collection.html'), built)));
   }
 
   // 4. The two files a crawler reads before any page.

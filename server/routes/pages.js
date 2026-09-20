@@ -24,7 +24,7 @@ const router = express.Router();
 const VIEWS_DIR = path.join(__dirname, '..', 'views', 'pages');
 const cache = require('../cache');
 const reviews = require('../reviews/store');
-const { injectHead, SITE_NAME } = require('../htmlSeo');
+const { injectSeo, SITE_NAME } = require('../htmlSeo');
 const meta = require('../pageMeta');
 const partials = require('../partials');
 const { getProduct } = require('../shopify/queries/getProduct');
@@ -69,7 +69,7 @@ async function sendPage(res, file, seo) {
     console.error('[pages] missing template', file, err.message);
     return res.status(503).type('html').send('<!DOCTYPE html><p>Page unavailable.</p>');
   }
-  res.status(200).type('html').send(injectHead(html, seo));
+  res.status(200).type('html').send(injectSeo(html, seo));
 }
 
 /** Approved-review stats for a handle, or null when there are none to show. */

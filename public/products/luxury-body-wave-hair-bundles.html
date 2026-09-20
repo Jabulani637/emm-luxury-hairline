@@ -94,10 +94,15 @@
 
     <!-- Main Content -->
     <main>
-      <!-- product.js renders the gallery, price, option pickers and cart
-           buttons into this container from /api/products/:handle. -->
+      <!-- The server writes this product's heading and description at the
+           marker below; product.js then replaces the whole container with the
+           gallery, price, option pickers and cart buttons it builds from
+           /api/products/:handle. -->
       <div id="product-page" class="product-page">
-        <div class="loading">Loading product…</div>
+        <div class="product-info">
+        <h1>Luxury Body Wave Hair Bundles</h1>
+        <p class="product-description">Elevate your look with our luxurious Body Wave Hair Bundles, designed to give you beautiful, flowing waves with a soft and natural-looking finish. The body wave texture creates effortless movement and volume, making it perfect for everyday styling, special occasions, sew-ins, wig making, and custom hair looks. Product Features Beautiful body wave texture Soft, flowing wave pattern Natural-looking appearance Full-bodied look and volume Suitable for sew-ins and custom wig construction Available in multiple lengths Can be styled according to your desired look Perfect for Sew-in hairstyles Wig making Custom units Special occasions Everyday glam Important: Hair characteristics such as origin, hair grade, processing, and whether the hair is human or synthetic may vary by product. Please confirm the specific specifications before purchasing. Experience beautiful waves that help you unveil your inner aura.</p>
+      </div>
       </div>
       <!-- Customer reviews — filled by reviews.js from approved submissions. -->
       <section id="product-reviews"></section>

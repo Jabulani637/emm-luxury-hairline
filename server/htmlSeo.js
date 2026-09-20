@@ -6,6 +6,11 @@
  * and no product data. Rather than duplicate meta tags across 9 files, every
  * page is served through here: the existing <title> and description are reused
  * as defaults, and anything the caller passes overrides them.
+ *
+ * Head tags alone were not enough — with the body still empty, a product page
+ * had no <h1> and no searchable text in the delivered HTML, so a page that
+ * wants body content marks where it goes with `<!--seo-body-->` and the caller
+ * supplies it. See pageMeta's productMeta/collectionMeta.
  */
 
 const SITE_NAME = 'Emm Luxury Hair';
@@ -59,9 +64,12 @@ function stripExisting(html) {
  * @param seo.ogType       'website' | 'product'
  * @param seo.noindex      true to keep the page out of search results
  * @param seo.jsonLd       array of schema.org objects
+ * @param seo.bodyHtml     HTML to place at the page's `<!--seo-body-->` marker,
+ *                         for content the browser would otherwise only build
+ *                         from JavaScript after load
  */
-function injectHead(html, seo) {
-  if (typeof html !== 'string' || html.indexOf('</head>') === -1) return html;
+function injectSeo(html, seo) {
+  if (typeof html !== 'string') return html;
 
   const existingTitle = readExisting(html, /<title>([\s\S]*?)<\/title>/i);
   const existingDescription = readExisting(html, /<meta[^>]+name=["']description["'][^>]*content=["']([^"']*)["']/i);
@@ -90,7 +98,11 @@ function injectHead(html, seo) {
     ...(seo.jsonLd || []).map(jsonLdScript),
   ].filter(Boolean).join('\n    ');
 
-  return stripExisting(html).replace(/<\/head>/i, `    ${tags}\n  </head>`);
+  // A function replacement, because Shopify copy containing `$&` would otherwise
+  // be read as a replacement pattern and inject the matched marker back into it.
+  return stripExisting(html)
+    .replace(/<\/head>/i, `    ${tags}\n  </head>`)
+    .replace(/<!--seo-body-->/g, () => seo.bodyHtml || '');
 }
 
-module.exports = { injectHead, escapeAttr, jsonLdScript, SITE_NAME };
+module.exports = { injectSeo, escapeAttr, jsonLdScript, SITE_NAME };

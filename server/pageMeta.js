@@ -8,7 +8,7 @@
  * differently is precisely what a canonical link exists to prevent. Both sides
  * read these functions, so they cannot drift.
  */
-const { SITE_NAME } = require('./htmlSeo');
+const { SITE_NAME, escapeAttr } = require('./htmlSeo');
 const { getProducts } = require('./shopify/queries/getProducts');
 const { getCollections } = require('./shopify/queries/getCollections');
 const { getCollection } = require('./shopify/queries/getCollection');
@@ -32,7 +32,7 @@ const PAGES = {
   '/pages/about': {
     file: 'pages/about.html',
     title: 'About Us — Who We Are and What We Stock | Emm Luxury Hair',
-    description: 'Emm Luxury Hair is a UK-based human hair business selling raw and virgin hair wigs and bundles worldwide. What we stock, the standards we hold it to, and how an order works.',
+    description: 'Emm Luxury Hair is a UK-based human hair business selling raw and virgin wigs and bundles worldwide. What we stock, the standards behind it, and how ordering works.',
     ogType: 'website',
   },
   '/pages/reviews': {
@@ -43,7 +43,7 @@ const PAGES = {
   },
   '/pages/custom-order': {
     file: 'pages/custom-order.html',
-    title: 'Request a Custom Wig — Built to Your Specification | Emm Luxury Hair',
+    title: 'Request a Custom Wig | Emm Luxury Hair',
     description: 'Send Emm Luxury Hair the style, length, colour and budget you want and we will source or build it, then email you a payment link.',
     ogType: 'website',
   },
@@ -66,7 +66,7 @@ const PAGES = {
   },
   '/pages/wig-care': {
     file: 'pages/wig-care.html',
-    title: 'Wig Care Guide — How to Make Human Hair Last | Emm Luxury Hair',
+    title: 'Wig Care — How to Make Human Hair Last | Emm Luxury Hair',
     description: 'How to wash, detangle, store and restyle a human hair wig so it keeps its quality for as long as possible.',
     ogType: 'website',
   },
@@ -182,11 +182,21 @@ function productMeta(product, rating) {
   const summary = summarise(plain, 155);
   const schemaDescription = summarise(plain, 300);
 
+  // Mirrors the markup and class names product.js builds, so the delivered HTML
+  // opens on the real product name and description instead of "Loading
+  // product…". JavaScript replaces this container wholesale, so the two can
+  // never show twice.
+  const bodyHtml = `<div class="product-info">
+        <h1>${escapeAttr(product.title)}</h1>
+        ${plain ? `<p class="product-description">${escapeAttr(plain)}</p>` : ''}
+      </div>`;
+
   return {
     title: `${product.title} | ${SITE_NAME}`,
     description: summary || `${product.title} — ${SITE_NAME}.`,
     canonical,
     ogType: 'product',
+    bodyHtml,
     ogImage: images[0] || FALLBACK_IMAGE,
     siteImage: FALLBACK_IMAGE,
     jsonLd: [{
@@ -224,16 +234,25 @@ function productMeta(product, rating) {
 /** Head metadata for a collection, including the virtual "all" catalogue. */
 function collectionMeta({ handle, title, description, products }) {
   const canonical = pageUrl('collections', handle);
-  const summary = summarise(description)
+  const plain = String(description || '').replace(/\s+/g, ' ').trim();
+  const summary = summarise(plain)
     || (handle === 'all'
       ? `Every wig, bundle and extension currently on sale at ${SITE_NAME}, including ready-to-ship styles.`
       : `The ${title} range at ${SITE_NAME} — human hair wigs and extensions.`);
+
+  // The header collection.js builds, rendered up front so the page has a
+  // heading and a sentence of its own before any script runs.
+  const bodyHtml = `<div class="collection-header">
+        <h1>${escapeAttr(title)}</h1>
+        <p class="collection-description">${escapeAttr(plain || summary)}</p>
+      </div>`;
 
   return {
     title: `${title} | ${SITE_NAME}`,
     description: summary,
     canonical,
     ogType: 'website',
+    bodyHtml,
     ogImage: products[0]?.images?.[0]?.url || FALLBACK_IMAGE,
     siteImage: FALLBACK_IMAGE,
     jsonLd: [{

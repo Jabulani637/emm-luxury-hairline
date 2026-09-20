@@ -93,8 +93,14 @@
 
     <!-- Main Content -->
     <main>
+        <!-- The server writes this collection's heading and description at the
+             marker below; collection.js then replaces the whole container with
+             the product grid it builds from /api/collections/:handle. -->
         <div id="collection-page" class="collection-page">
-            <div class="loading">Loading collection…</div>
+            <div class="collection-header">
+        <h1>Beauty example products</h1>
+        <p class="collection-description">The Beauty example products range at Emm Luxury Hair — human hair wigs and extensions.</p>
+      </div>
         </div>
     </main>
 
