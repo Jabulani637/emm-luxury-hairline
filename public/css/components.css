@@ -2227,8 +2227,15 @@ textarea.form-input {
 }
 
 .policy-summary-icon {
-    font-size: 28px;
+    display: flex;
+    justify-content: center;
     line-height: 1;
+    color: var(--burgundy);
+}
+
+.policy-summary-icon svg {
+    width: 28px;
+    height: 28px;
 }
 
 .policy-summary-card h3 {
@@ -2263,9 +2270,15 @@ textarea.form-input {
 }
 
 .policy-flag {
-    font-size: 32px;
+    display: flex;
     line-height: 1;
     flex-shrink: 0;
+    color: var(--burgundy);
+}
+
+.policy-flag svg {
+    width: 30px;
+    height: 30px;
 }
 
 .policy-section-header h2 {
@@ -2396,6 +2409,10 @@ textarea.form-input {
 }
 
 .policy-section-header--warning h2 {
+    color: #8a4a00;
+}
+
+.policy-section-header--warning .policy-flag {
     color: #8a4a00;
 }
 
