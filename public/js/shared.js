@@ -17,27 +17,6 @@ function escapeHtml(value) {
 }
 
 /**
- * Convert Shopify's cart permalink (/cart/c/TOKEN) to the direct checkout URL
- * (/checkouts/cn/TOKEN?skip_shop_pay=true) so the browser lands on the standard
- * checkout form instead of being intercepted by Shop Pay or bounced home.
- */
-function buildDirectCheckoutUrl(cartCheckoutUrl) {
-  try {
-    const url = new URL(cartCheckoutUrl);
-    const match = url.pathname.match(/^\/cart\/c\/([^/?]+)/);
-    if (match) {
-      url.pathname = '/checkouts/cn/' + match[1];
-    }
-    url.searchParams.delete('_s');
-    url.searchParams.delete('_y');
-    url.searchParams.set('skip_shop_pay', 'true');
-    return url.toString();
-  } catch (_) {
-    return cartCheckoutUrl;
-  }
-}
-
-/**
  * Render a product card. Shared by the home bestsellers grid and collection
  * grids. data-* attribute values are escapeHtml'd (NOT encodeURIComponent'd):
  * dataset reads back the raw string, and percent-encoding a GID would make
@@ -302,6 +281,5 @@ if (document.readyState === 'loading') {
 }
 
 window.escapeHtml = escapeHtml;
-window.buildDirectCheckoutUrl = buildDirectCheckoutUrl;
 window.createProductCard = createProductCard;
 window.handleFromLocation = handleFromLocation;

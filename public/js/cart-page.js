@@ -369,8 +369,9 @@ function setupCheckoutButton() {
     const cart = window.cartManager.getCart();
     const rawCheckoutUrl = window.cartManager.getCheckoutUrl();
 
-    if (!rawCheckoutUrl || !cart) {
-      alert('Your cart is empty');
+    if (!rawCheckoutUrl || !cart || window.cartManager.getItemCount() === 0) {
+      window.cartManager.clearCart();
+      alert('Your bag is empty — that item is no longer available to order.');
       return;
     }
 
@@ -384,9 +385,9 @@ function setupCheckoutButton() {
       console.warn('[Cart] Could not clear buyer identity:', err.message);
     }
 
-    // Use the direct /checkouts/cn/ URL to bypass Shop Pay interception
-    const directUrl = buildDirectCheckoutUrl(rawCheckoutUrl);
-    window.location.href = directUrl;
+    // Shopify's own permalink sets up the checkout session; rewriting it
+    // loses that session and bounces the customer to the store home.
+    window.location.href = rawCheckoutUrl;
   });
 }
 
