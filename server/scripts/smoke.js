@@ -510,6 +510,70 @@ function checkShippingTotals() {
     problems.length === 0, problems.slice(0, 4).join(', ') || 'fragment, mutations, cart math and summary rows all agree');
 }
 
+/**
+ * The published delivery prices the cart page falls back to. Shopify is what
+ * charges, so this table only earns its place by (a) matching the zones the
+ * merchant configured to the penny and (b) staying out of the way whenever
+ * Shopify quoted the address for real.
+ */
+function checkPublishedShippingRates() {
+  const read = (...parts) => fs.readFileSync(path.join(ROOT, ...parts), 'utf8');
+  const { quoteFor, ZONES } = require('../shipping');
+  const mounted = read('server', 'index.js');
+  const api = read('public', 'js', 'api.js');
+  const cartPage = read('public', 'js', 'cart-page.js');
+  const markup = read('server', 'views', 'pages', 'cart.html');
+  const components = read('public', 'css', 'components.css');
+
+  const problems = [];
+
+  const priceOf = option => String((option && option.cost || {}).amount);
+  const uk = quoteFor('GB');
+  const de = quoteFor('DE');
+  const au = quoteFor('AU');
+
+  if (!uk || uk.options.length !== 2 || priceOf(uk.options[0]) !== '0.00' || !uk.options[0].free
+      || priceOf(uk.options[1]) !== '28.00') {
+    problems.push('the UK row is not free standard plus a £28 express');
+  }
+  if (!de || de.zone.indexOf('EU') !== 0 || priceOf(de.options[0]) !== '14.99') {
+    problems.push('Germany is not priced at £14.99 in the EU zone');
+  }
+  const euSize = (ZONES.find(z => z.id === 'eu').countries || []).length;
+  if (euSize !== 27) problems.push(`the EU zone lists ${euSize} countries, not 27`);
+  if (!au || priceOf(au.options[0]) !== '23.99') {
+    problems.push('a destination outside the UK and the EU is not priced at £23.99');
+  }
+  for (const junk of ['ZZ', '', 'DEU', 'G', null, undefined, 42]) {
+    if (quoteFor(junk)) problems.push(`${JSON.stringify(junk)} was given a delivery price`);
+  }
+  for (const quote of [uk, de, au].filter(Boolean)) {
+    for (const option of quote.options) {
+      if (option.cost.currencyCode !== 'GBP') problems.push(`${option.title} is not priced in GBP`);
+      if (!option.eta) problems.push(`${option.title} names no delivery time`);
+    }
+  }
+
+  if (!/app\.use\('\/api\/shipping'/.test(mounted)) problems.push('GET /api/shipping/quote is not mounted');
+  if (!/window\.shippingAPI\s*=/.test(api)) problems.push('api.js does not expose shippingAPI');
+  if (!/\/shipping\/quote\?country=/.test(api)) problems.push('api.js never calls /shipping/quote');
+
+  // The whole point: a live quote from Shopify must win over our own table.
+  if (!/rates\.length > 0/.test(cartPage)) problems.push('the cart page does not prefer Shopify\'s quote');
+  if (!/showPublishedEstimate\(countryCode\)/.test(cartPage)) problems.push('the cart page never falls back to the published price');
+  if (!/getShippingRates\(\)/.test(cartPage)) problems.push('the cart page cannot read Shopify\'s delivery options');
+
+  for (const id of ['shipping-estimate', 'shipping-estimate-list', 'shipping-estimate-note']) {
+    if (!markup.includes(`id="${id}"`)) problems.push(`the cart template has no #${id}`);
+  }
+  for (const rule of ['.shipping-estimate {', '.shipping-estimate-item {', '.shipping-estimate-note {']) {
+    if (!components.includes(rule)) problems.push(`components.css has no ${rule} rule`);
+  }
+
+  check('published delivery prices back every destination Shopify cannot quote',
+    problems.length === 0, problems.slice(0, 4).join(', ') || 'table, route, client, markup and styles all agree');
+}
+
 /** A storefront page: real header and footer, no unexpanded partial markers. */
 async function page(name, pathname, { navActive = false, drawer = true, jsonLd = false } = {}) {
   const r = await get(pathname);
@@ -572,6 +636,7 @@ async function run(server) {
   checkMobileNav();
   checkLocalCurrency();
   checkShippingTotals();
+  checkPublishedShippingRates();
 
   for (const [name, pathname, opts] of [
     ['homepage', '/', { navActive: true, jsonLd: true }],
@@ -675,6 +740,17 @@ async function run(server) {
 
   await json('unknown API endpoint 404s as JSON', '/api/nope', (s, d) => (
     s === 404 && d && d.error === 'Unknown API endpoint'
+  ));
+
+  // The cart page's fallback: a priced destination, and Shopify's placeholder
+  // for "no country yet", which must not be handed a price.
+  await json('/api/shipping/quote prices an EU destination', '/api/shipping/quote?country=DE', (s, d) => (
+    s === 200 && d && d.options && d.options[0]
+    && d.options[0].cost.amount === '14.99' && d.options[0].cost.currencyCode === 'GBP'
+    && !!d.options[0].eta ? true : `status ${s}, ${JSON.stringify(d || {}).slice(0, 120)}`
+  ));
+  await json('/api/shipping/quote refuses Shopify\'s "no country"', '/api/shipping/quote?country=ZZ', (s, d) => (
+    s === 400 && d && d.error ? true : `status ${s}, ${JSON.stringify(d || {}).slice(0, 120)}`
   ));
 }
 

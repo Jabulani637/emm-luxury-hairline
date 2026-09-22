@@ -204,6 +204,12 @@ const countriesAPI = {
   getCountries: () => apiFetch('/countries'),
 };
 
+// What delivery to one country costs at the prices published in Shopify admin.
+// The cart page only asks after Shopify itself has quoted nothing.
+const shippingAPI = {
+  getQuote: (country) => apiFetch(`/shipping/quote?country=${encodeURIComponent(country)}`),
+};
+
 const ratesAPI = {
   getRates: () => apiFetch('/rates'),
 };
@@ -222,6 +228,7 @@ window.productsAPI    = productsAPI;
 window.collectionsAPI = collectionsAPI;
 window.cartAPI        = cartAPI;
 window.countriesAPI   = countriesAPI;
+window.shippingAPI    = shippingAPI;
 window.ratesAPI       = ratesAPI;
 window.contactAPI     = contactAPI;
 window.subscribersAPI = subscribersAPI;

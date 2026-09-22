@@ -58,6 +58,22 @@
                                 </div>
                                 <ul id="shipping-rates-list"></ul>
                             </div>
+                            <!-- Our published delivery prices, shown only when Shopify
+                                 quoted nothing for the address above. A real rate from
+                                 the shop always wins, so the two blocks never disagree. -->
+                            <div id="shipping-estimate" class="shipping-estimate" style="display: none;">
+                                <div class="shipping-estimate-head">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M1 3h13v13H1z"></path>
+                                        <path d="M14 8h4l3 3v5h-7z"></path>
+                                        <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                        <circle cx="17.5" cy="18.5" r="2.5"></circle>
+                                    </svg>
+                                    <span id="shipping-estimate-title">Estimated delivery</span>
+                                </div>
+                                <ul id="shipping-estimate-list"></ul>
+                                <p class="shipping-estimate-note" id="shipping-estimate-note"></p>
+                            </div>
                             <div id="shipping-error" class="shipping-error" style="display: none;"></div>
                         </div>
 

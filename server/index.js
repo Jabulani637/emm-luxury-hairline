@@ -207,6 +207,7 @@ app.use('/api/collections', require('./routes/collections'));
 app.use('/api/cart', cartWriteLimiter, require('./routes/cart'));
 app.use('/api/config', require('./routes/config'));
 app.use('/api/countries', require('./routes/countries'));
+app.use('/api/shipping', require('./routes/shipping'));
 app.use('/api/rates', require('./routes/rates'));
 app.use('/api/custom-orders', formSubmitLimiter, require('./routes/customOrders'));
 app.use('/api/contact', formSubmitLimiter, require('./routes/contact'));

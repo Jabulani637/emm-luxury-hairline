@@ -41,12 +41,21 @@ async function initShippingEstimate() {
   }
 }
 
+// Shopify's buyer-country list currently omits the store's own country, so a UK
+// shopper could not price delivery to the UK. Naming the home market here is
+// harmless once Shopify lists it again — the map below keys on the code, so the
+// real entry simply wins.
+const HOME_MARKET = { code: 'GB', name: 'United Kingdom' };
+
 function populateCountries(countrySelect) {
   if (!COUNTRIES_DATA || !COUNTRIES_DATA.countries) return;
 
-  const countries = COUNTRIES_DATA.countries
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const byCode = new Map([[HOME_MARKET.code, HOME_MARKET]]);
+  for (const c of COUNTRIES_DATA.countries) {
+    if (c && c.code) byCode.set(c.code, c);
+  }
+
+  const countries = [...byCode.values()].sort((a, b) => a.name.localeCompare(b.name));
 
   const currentValue = countrySelect.value;
   countrySelect.innerHTML = '<option value="">Select country</option>';
@@ -101,6 +110,7 @@ async function onCalculateShipping(e) {
   errorBox.style.display = 'none';
   ratesBox.style.display = 'none';
   ratesList.innerHTML = '';
+  hideShippingEstimate();
 
   if (!countryCode) {
     showShippingError('Please select a country.');
@@ -127,7 +137,14 @@ async function onCalculateShipping(e) {
     }
 
     const rates = await window.cartManager.estimateShipping(address);
-    renderShippingRates(rates);
+    // Shopify's own quote always wins where it exists: that is the money the
+    // shopper will actually be charged. The published table is what they see
+    // when the shop has no delivery option for the address at all.
+    if (rates.length > 0) {
+      renderShippingRates(rates);
+    } else {
+      await showPublishedEstimate(countryCode);
+    }
   } catch (error) {
     console.error('[Cart] Shipping estimate error:', error);
     showShippingError(error.message || 'Failed to calculate shipping rates. Please try again.');
@@ -135,6 +152,74 @@ async function onCalculateShipping(e) {
     calculateBtn.disabled = false;
     calculateBtn.textContent = originalText;
   }
+}
+
+function hideShippingEstimate() {
+  const box = document.getElementById('shipping-estimate');
+  if (box) box.style.display = 'none';
+}
+
+async function showPublishedEstimate(countryCode) {
+  try {
+    const quote = await window.shippingAPI.getQuote(countryCode);
+    renderShippingEstimate(quote, countryNameFor(countryCode));
+  } catch (error) {
+    // Nothing published to show either, so say the true thing rather than
+    // leaving the shopper staring at a button that did nothing.
+    console.error('[Cart] Published shipping rate unavailable:', error);
+    renderShippingRates([]);
+  }
+}
+
+function countryNameFor(code) {
+  const countries = (COUNTRIES_DATA && COUNTRIES_DATA.countries) || [];
+  const found = countries.find(c => c.code === code);
+  if (found) return found.name;
+  return code === HOME_MARKET.code ? HOME_MARKET.name : code;
+}
+
+function renderShippingEstimate(quote, countryName) {
+  const box = document.getElementById('shipping-estimate');
+  const list = document.getElementById('shipping-estimate-list');
+  const title = document.getElementById('shipping-estimate-title');
+  const note = document.getElementById('shipping-estimate-note');
+  if (!box || !list) return;
+
+  list.innerHTML = '';
+
+  for (const option of quote.options || []) {
+    const li = document.createElement('li');
+    li.className = 'shipping-estimate-item';
+
+    const info = document.createElement('span');
+    info.className = 'rate-info';
+    const name = document.createElement('strong');
+    name.textContent = option.title;
+    info.appendChild(name);
+    if (option.eta) {
+      const eta = document.createElement('p');
+      eta.className = 'rate-desc';
+      eta.textContent = option.eta;
+      info.appendChild(eta);
+    }
+
+    const cost = document.createElement('span');
+    cost.className = 'rate-cost';
+    cost.textContent = option.free
+      ? 'Free'
+      : window.formatPrice(parseFloat(option.cost.amount), option.cost.currencyCode);
+
+    li.appendChild(info);
+    li.appendChild(cost);
+    list.appendChild(li);
+  }
+
+  title.textContent = quote.zone === countryName
+    ? `Delivery to ${countryName}`
+    : `Delivery to ${countryName} — ${quote.zone}`;
+  note.textContent = 'Our published price for this destination. The exact amount '
+    + 'is confirmed at checkout.';
+  box.style.display = 'block';
 }
 
 function renderShippingRates(rates) {

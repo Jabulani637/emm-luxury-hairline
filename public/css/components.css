@@ -1475,6 +1475,54 @@ body:has(.signup-modal[open]) {
     font-size: 14px;
 }
 
+/* Published delivery prices — shown when Shopify has no delivery option for the
+   address, so this is an estimate and is styled apart from the live quote above. */
+.shipping-estimate {
+    margin-top: 20px;
+    padding: 16px;
+    background: var(--cream, #faf8f5);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+}
+
+.shipping-estimate-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    color: var(--burgundy);
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.shipping-estimate-head svg {
+    flex-shrink: 0;
+}
+
+#shipping-estimate-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.shipping-estimate-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.shipping-estimate-note {
+    margin: 14px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--ink-muted);
+}
+
 /* ==== SOLD OUT & Product Card Action Buttons ==== */
 .product-badge--soldout {
     background: #111 !important;
