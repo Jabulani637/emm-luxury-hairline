@@ -17,9 +17,11 @@ const SITE_NAME = 'Emm Luxury Hair';
 
 // Google Search Console's property token, as issued by its HTML-tag method.
 // Public by design — Google reads it out of the page source. The file method
-// cannot work here: vercel.json sets cleanUrls, so Vercel answers 404 for the
-// literal .html URL Google requests. The two methods issue separate tokens, so
-// the name of that downloaded file is not a valid value for this tag.
+// cannot work here: cleanUrls is on, so the live host answers the literal
+// .html URL Google requests with a 308 to the extensionless address, and
+// following it arrives at a page rather than at the file. The two methods issue
+// separate tokens, so the name of that downloaded file is not a valid value for
+// this tag.
 const GOOGLE_SITE_VERIFICATION = 'gV0ahnV-wy_ScbxL5p_Mz7QH6aXDP72ZntarOJoVsAg';
 
 function escapeAttr(value) {

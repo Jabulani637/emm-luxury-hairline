@@ -15,10 +15,10 @@ const router = express.Router();
  * max-age. The browser and any CDN in front of it then rarely reach this file
  * at all.
  *
- * The upstream call is made from here rather than from the page because the
- * storefront's Content-Security-Policy only allows connections to this API.
- * Adding a currency vendor to that list to serve a decorative number would
- * widen it for every page on the site.
+ * The upstream call is made from here rather than from the page so the browser
+ * only ever contacts this API. The storefront's Content-Security-Policy is still
+ * being staged behind measured traffic, and adding a currency vendor to its
+ * allow-list to serve a decorative number would widen it for every page.
  */
 
 const RATE_SOURCE = 'https://open.er-api.com/v6/latest/GBP';

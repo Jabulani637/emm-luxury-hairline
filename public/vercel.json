@@ -1,6 +1,23 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/admin/reviews",
+      "destination": "https://api.emmluxuryhair.com/admin/reviews",
+      "permanent": true
+    },
+    {
+      "source": "/products/product",
+      "destination": "/collections/all",
+      "permanent": true
+    },
+    {
+      "source": "/collections/collection",
+      "destination": "/collections/all",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/products/([^/]+)",

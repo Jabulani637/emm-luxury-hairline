@@ -637,8 +637,8 @@ async function postJson(name, pathname, payload, assert) {
  * A product published in Shopify since the last build has no file of its own,
  * and used to 404 — which is exactly how the emCrown wig reached a customer.
  * Three separate files now have to agree for that to stay fixed: the build has
- * to write the fallback, vercel.json has to route unknown handles to it, and the
- * page it generates has to stay out of the index while still booting the
+ * to write the fallback, public/vercel.json has to route unknown handles to it,
+ * and the page it generates has to stay out of the index while still booting the
  * renderer. Nothing fails loudly if one of them drifts, so this is the check.
  */
 function checkProductFallback() {
@@ -648,10 +648,13 @@ function checkProductFallback() {
   check('the build writes the product fallback page',
     /writePage\('pages\/product\.html'/.test(built) && /productFallbackMeta\(\)/.test(built));
 
-  const { rewrites = [] } = JSON.parse(read('vercel.json'));
+  // Read from the copy measured live in production, so a rewrite that exists only
+  // in the repository-root twin cannot pass this check.
+  const { rewrites = [] } = JSON.parse(read('public', 'vercel.json'));
   const rule = rewrites.find(r => String(r.source).startsWith('/products/'));
-  // cleanUrls is on, so Vercel answers 404 for the .html form of any page and a
-  // rewrite to it fails silently — every unknown handle still 404s.
+  // cleanUrls answers the .html form of any page with a 308 to the extensionless
+  // address, so a rewrite naming that .html form never reaches the file and every
+  // unknown handle still 404s.
   check('an unknown product handle routes to it',
     !!rule && rule.destination === '/pages/product',
     `rewrite is ${JSON.stringify(rule || null)}`);
@@ -676,10 +679,63 @@ function checkProductFallback() {
     !/pages\/product/.test(read('public', 'sitemap.xml')));
 }
 
+/**
+ * Probed on `www.emmluxuryhair.com`: the rewrite that only `public/vercel.json`
+ * declares is live, and the 301s that only the repository-root copy declares are
+ * absent — so `public/` is the copy Vercel reads, because that is this project's
+ * Root Directory.
+ *
+ * The root copy is kept anyway, as an identical twin. Root Directory is a
+ * dashboard setting rather than a fact in this repository, and commit `5b00676`
+ * failed to deploy over a rule that only ever lived at the root, so the setting
+ * has demonstrably pointed elsewhere before. If it moved back and the copy there
+ * lacked `cleanUrls` — which defaults to `false` — every extensionless address on
+ * the shop would 404 silently. Equality is what makes that impossible, and it is
+ * cheap: one comparison here instead of an outage in production.
+ */
+function checkVercelConfig() {
+  const rootFile = path.join(ROOT, 'vercel.json');
+  const publicFile = path.join(ROOT, 'public', 'vercel.json');
+  const both = fs.existsSync(rootFile) && fs.existsSync(publicFile);
+  check('both candidate routing configs exist, whichever one Vercel reads',
+    both, 'a missing copy would leave the read config without cleanUrls and 404 the site');
+  if (!both) return;
+
+  const rootText = fs.readFileSync(rootFile, 'utf8');
+  const publicText = fs.readFileSync(publicFile, 'utf8');
+  check('the two routing configs are identical, so the unread one cannot drift',
+    rootText === publicText, rootText === publicText ? '' : 'they name different rules for the same host');
+
+  let config;
+  try {
+    config = JSON.parse(publicText);
+  } catch (err) {
+    check('public/vercel.json parses', false, err.message);
+    return;
+  }
+
+  // Without this, every extensionless address the site links to — /cart,
+  // /products/<handle>, /collections/all — is a 404.
+  check('clean URLs are switched on', config.cleanUrls === true,
+    `cleanUrls is ${JSON.stringify(config.cleanUrls)}`);
+
+  const targets = (config.redirects || []).map(r => r.destination);
+  const hasPage = url => {
+    const base = url.replace(/^\//, '').replace(/\/$/, '');
+    return ['', '.html'].some(ext => fs.existsSync(path.join(ROOT, 'public', base + ext)))
+      || fs.existsSync(path.join(ROOT, 'public', base, 'index.html'));
+  };
+  const dead = targets.filter(dest => !/^https?:\/\//.test(dest) && !hasPage(dest));
+  check('every redirect names a page that exists',
+    dead.length === 0,
+    dead.length ? `no page at: ${dead.join(', ')}` : `${targets.length} redirect(s) checked`);
+}
+
 async function run(server) {
   checkNoBom();
   checkBakedPages();
   checkProductFallback();
+  checkVercelConfig();
   checkPaymentStrip();
   checkNewsletter();
   checkSignupDialog();

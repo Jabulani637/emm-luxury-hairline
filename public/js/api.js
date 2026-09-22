@@ -70,8 +70,8 @@ async function resolveApiBase() {
     const configured = cfg.apiBaseUrl.replace(/\/$/, '');
     // BACKEND_URL is absolute, so it can name an origin the page is not actually
     // on — a dev server started on another port, or a preview URL. When the two
-    // do match, stay relative: one less hop, and same-origin requests are what
-    // the Content-Security-Policy's connect-src 'self' covers.
+    // do match, stay relative: one less hop, and same-origin calls are what a
+    // connect-src 'self' policy can cover without ever being widened.
     _apiBase = sameOriginAsPage(configured) ? '/api' : configured;
     // Make it available to other scripts that read window.APP_CONFIG
     if (typeof window !== 'undefined') {

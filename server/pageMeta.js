@@ -234,9 +234,9 @@ function productMeta(product, rating) {
 /**
  * Head metadata for the page served at any /products/<handle> this build has no
  * file for — a product published in Shopify since the last run, or a handle
- * typed wrong. vercel.json rewrites those paths here so product.js can fetch the
- * real product from the API: a shopper can open and buy a new wig seconds after
- * it is published, without waiting for a build at all.
+ * typed wrong. public/vercel.json rewrites those paths here so product.js can
+ * fetch the real product from the API: a shopper can open and buy a new wig
+ * seconds after it is published, without waiting for a build at all.
  *
  * `noindex` is the point of this function. The same file answers every unknown
  * handle, so an indexable version would put a duplicate product page in front of
