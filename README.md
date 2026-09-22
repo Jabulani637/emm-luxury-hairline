@@ -468,9 +468,14 @@ frame-ancestors 'self'; upgrade-insecure-requests
 
 **Live since 23 Sep 2026, 23:26Z.** Compared byte-for-byte against this file's
 value from the running host: 346 bytes committed, 346 bytes returned, identical.
-Every page returns it (`/`, `/cart`, all ten checked routes, every product and
-collection address) and so does every asset — `/css/main.css`, `/js/api.js`,
-`/assets/EmmLuxuryHair.svg`, `robots.txt`, `sitemap.xml`. The four 308s measured —
+Eighteen addresses came back 200 with that header on them — `/`, `/cart`,
+`/collections/all`, `/collections/frontpage`,
+`/products/emcrown-premium-straight-wig`, `/products/luxury-body-wave-hair-bundles`,
+`/pages/about`, `/pages/reviews`,
+`/pages/contact`, `/pages/custom-order`, `/pages/faqs`, `/pages/shipping-returns`,
+`/pages/wig-care`, `/js/api.js`, `/css/main.css`, `/assets/EmmLuxuryHair.svg`,
+`robots.txt` and `sitemap.xml` — the rest of the site is built from the same
+templates by the same build. The four 308s measured —
 `/index.html`, `/cart.html`, `/products/product`, `/admin/reviews` — carry no CSP:
 the header rides whichever response Vercel produces, and for those it is a redirect.
 Re-prove it with:
