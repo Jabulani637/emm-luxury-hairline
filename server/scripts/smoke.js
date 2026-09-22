@@ -731,11 +731,92 @@ function checkVercelConfig() {
     dead.length ? `no page at: ${dead.join(', ')}` : `${targets.length} redirect(s) checked`);
 }
 
+/**
+ * A policy one host too tight fails silently: the page still renders and the buy
+ * button stops working, with nothing but a console message to show for it. So do
+ * not trust the directive list as written — derive the hosts and require each.
+ *
+ * Two sources, because one is not enough:
+ *   - the committed files, for what a page loads on its own. Only fetching
+ *     positions count: src/srcset/href/poster on a resource element, CSS url(),
+ *     and origins named in the shipped JS. A bare anchor href navigates rather
+ *     than fetches, which is why https://wa.me and the canonical links stay out,
+ *     and `og:image` is fetched by crawlers rather than by this page's browser.
+ *   - the live API, for what arrives at runtime. Every product image URL comes
+ *     from `/api/products`, so `cdn.shopify.com` appears in no committed page in
+ *     a position a browser loads — the static half alone would pass a policy that
+ *     blocked every picture on the shop.
+ */
+async function checkContentSecurityPolicy() {
+  let config;
+  try {
+    config = JSON.parse(fs.readFileSync(path.join(ROOT, 'public', 'vercel.json'), 'utf8'));
+  } catch (err) {
+    check('the CSP is readable from public/vercel.json', false, err.message);
+    return;
+  }
+
+  const rule = (config.headers || []).find(h => h.source === '/(.*)');
+  const csp = rule && (rule.headers || []).find(h => h.key === 'Content-Security-Policy');
+  check('every route ships a Content-Security-Policy', !!csp,
+    'no CSP header for source /(.*) in the config Vercel reads');
+  if (!csp) return;
+
+  const allowed = new Set((csp.value.match(/https?:\/\/[a-z0-9.-]+/gi) || [])
+    .map(u => u.replace(/^https?:\/\//i, '').toLowerCase()));
+
+  const loaded = new Set();
+  const addUrl = url => loaded.add(url.replace(/^https?:\/\//i, '').split('/')[0].toLowerCase());
+  const grab = (name, text) => {
+    for (const tag of text.match(/<(?:link|img|script|source|iframe|embed|input|track)\b[^>]*>/gi) || [])
+      for (const m of tag.matchAll(/\b(?:src|srcset|href|poster)\s*=\s*["'](https?:\/\/[^"'\s]+)/gi)) addUrl(m[1]);
+    for (const m of text.matchAll(/url\(\s*["']?(https?:\/\/[^"')\s]+)/gi)) addUrl(m[1]);
+    if (name.endsWith('.js'))
+      for (const m of text.matchAll(/["'`](https?:\/\/[^"'`\s]+)/g)) addUrl(m[1]);
+  };
+  const walk = dir => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === '.vercel' || entry.name === 'node_modules') continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (/\.(?:html|css|js)$/.test(entry.name))
+        grab(entry.name, fs.readFileSync(full, 'utf8'));
+    }
+  };
+  walk(path.join(ROOT, 'public'));
+
+  const catalogue = await (await fetch(`${BASE}/api/products?first=100`)).json();
+  for (const product of catalogue.products || []) {
+    for (const image of product.images || []) if (image.url) addUrl(image.url);
+    for (const variant of product.variants || [])
+      if (variant.image) addUrl(typeof variant.image === 'string' ? variant.image : variant.image.url);
+    // A description is injected as HTML, so an image embedded in it is fetched too.
+    for (const m of (product.descriptionHtml || '').matchAll(/\bsrc\s*=\s*["'](https?:\/\/[^"'\s]+)/gi)) addUrl(m[1]);
+  }
+  check('the catalogue handed the CSP something to cover', (catalogue.products || []).length > 0,
+    'no products, so the runtime half of this check proved nothing');
+
+  // 'self' means the origin the page is served from, and nothing wider: the API
+  // host shares the domain but is a different origin on www, so a policy that
+  // dropped it from connect-src has to fail here rather than be excused by a
+  // domain-suffix match. localhost is the origin api.js names for a page opened
+  // off disk, which no customer loads and no policy should grant.
+  const own = new Set(['www.emmluxuryhair.com', 'emmluxuryhair.com']);
+  const loopback = h => /^(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(h);
+  const fetched = [...loaded].filter(h => !own.has(h) && !loopback(h));
+  const missing = fetched.filter(h => !allowed.has(h));
+  check('the CSP covers every host a page fetches, built or live',
+    missing.length === 0,
+    missing.length ? `blocked by the policy: ${missing.join(', ')}`
+      : `grants ${[...allowed].join(', ') || "'self' only"}`);
+}
+
 async function run(server) {
   checkNoBom();
   checkBakedPages();
   checkProductFallback();
   checkVercelConfig();
+  await checkContentSecurityPolicy();
   checkPaymentStrip();
   checkNewsletter();
   checkSignupDialog();
