@@ -17,25 +17,29 @@ const CART_CREATE_MUTATION = `
 
 /**
  * Create a new cart with a line item.
- * buyerIdentity is intentionally left empty so Shopify's hosted checkout
- * allows the customer to freely choose their own country and address.
+ *
+ * With no `country`, buyerIdentity is left empty and Shopify decides the market
+ * itself — measured on the live shop, it predicts the buyer's country from their
+ * request, which is why an untouched cart can open on a foreign checkout. When
+ * the shopper has picked a country Shopify lists, that one goes on the cart
+ * instead, so checkout starts where they said they live. Either way the bag stays
+ * priced in the store's own currency until a market quotes its buyers in their
+ * own.
  */
-async function cartCreate(variantId, quantity = 1) {
+async function cartCreate(variantId, quantity = 1, country) {
+  const input = {
+    lines: [
+      {
+        merchandiseId: variantId,
+        quantity,
+      },
+    ],
+  };
+  if (country) input.buyerIdentity = { countryCode: country };
+
   const data = await shopifyFetch({
     query: CART_CREATE_MUTATION,
-    variables: {
-      input: {
-        lines: [
-          {
-            merchandiseId: variantId,
-            quantity,
-          },
-        ],
-        // No buyerIdentity.countryCode — leaving it unset lets Shopify
-        // show the country selector at checkout instead of locking it to
-        // the store's base country (GB).
-      },
-    },
+    variables: { input },
   });
 
   if (data.cartCreate?.userErrors?.length) {

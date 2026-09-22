@@ -1,18 +1,22 @@
 const { shopifyFetch } = require('../client');
+const { CART_FIELDS } = require('../cartFields');
 
 /**
- * cartBuyerIdentityUpdate — clears the countryCode from the cart's buyer
- * identity so Shopify's hosted checkout shows the full country selector
- * instead of locking it to the store's base country (GB).
+ * cartBuyerIdentityUpdate — put the shopper's country on the cart just before
+ * opening checkout, so Shopify's delivery form starts on their own country
+ * instead of the store's. It does not re-price the bag by itself: measured on the
+ * live shop a US, DE or FR cart still totals GBP until a market quotes its buyers
+ * in their own currency.
  *
- * Called once just before redirecting to checkoutUrl.
+ * The response replaces the cart the browser is holding, so it returns the same
+ * fields every other cart mutation does: a slim one would drop the lines, the
+ * address and the shipping rate the shopper had already chosen.
  */
 const CART_BUYER_IDENTITY_UPDATE_MUTATION = `
   mutation cartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
     cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
       cart {
-        id
-        checkoutUrl
+        ${CART_FIELDS}
         buyerIdentity {
           countryCode
         }
@@ -28,22 +32,19 @@ const CART_BUYER_IDENTITY_UPDATE_MUTATION = `
 
 /**
  * @param {string} cartId
- * @param {object} identity - pass {} to use ZZ (unspecified) which unlocks the country selector
+ * @param {object} identity - { countryCode: 'US' }. A real country only:
+ *   Shopify's "unspecified" ZZ zeroes the cart's total and quantity.
  */
-async function cartBuyerIdentityUpdate(cartId, identity = {}) {
-  // Shopify uses countryCode "ZZ" as the "unspecified / let customer choose" value.
-  // Passing an empty object still defaults to the store's base country (GB).
-  // Explicitly setting ZZ removes the country lock so the checkout country
-  // selector is fully open to any country.
-  const buyerIdentity = Object.keys(identity).length > 0
-    ? identity
-    : { countryCode: 'ZZ' };
+async function cartBuyerIdentityUpdate(cartId, identity) {
+  if (!identity || !Object.keys(identity).length) {
+    throw new Error('cartBuyerIdentityUpdate needs a country to set');
+  }
 
   const data = await shopifyFetch({
     query: CART_BUYER_IDENTITY_UPDATE_MUTATION,
     variables: {
       cartId,
-      buyerIdentity,
+      buyerIdentity: identity,
     },
   });
 

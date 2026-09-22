@@ -16,12 +16,16 @@ const GET_PRODUCTS_QUERY = `
 
 /**
  * Fetch a list of products, optionally sorted/filtered
+ *
+ * `country` prices the results for a buyer in that market; leave it out for the
+ * store's own currency, which is what the static pages and sitemap are built in.
  */
-async function getProducts({ first = 8, sortKey = 'BEST_SELLING', reverse = false, query } = {}) {
+async function getProducts({ first = 8, sortKey = 'BEST_SELLING', reverse = false, query, country } = {}) {
   const data = await shopifyFetch({
     query: GET_PRODUCTS_QUERY,
     variables: { first, sortKey, reverse, query },
     bucket: 'catalog',
+    country,
   });
 
   return data.products.edges.map(e => normalizeProduct(e.node));

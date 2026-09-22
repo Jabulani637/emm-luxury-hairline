@@ -2990,3 +2990,50 @@ textarea.form-input {
     line-height: 1.5;
     color: var(--ink-muted);
 }
+
+/* ── Country and currency picker ──────────────────────────────────────
+   Header control that public/js/market.js fills from Shopify's own list of
+   countries a buyer may check out from. It stays hidden until that list is not
+   empty, so on a store Shopify has not opened up the header looks exactly as it
+   did without it.                                                        */
+
+.country-picker {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--burgundy);
+}
+
+.country-picker[hidden] {
+    display: none;
+}
+
+.country-picker-label {
+    display: flex;
+    align-items: center;
+}
+
+.country-select {
+    appearance: none;
+    background: transparent url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'%3E%3Cpath d='M1 1l3 3 3-3' fill='none' stroke='%237a2e3f' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 2px center;
+    border: 0;
+    border-bottom: 1px solid rgba(122, 46, 63, 0.35);
+    color: var(--burgundy);
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    /* A select sizes itself to its longest option, and this one lists every
+       country Shopify sells to, so the width is capped and the name truncated. */
+    max-width: 132px;
+    overflow: hidden;
+    padding: 4px 14px 4px 2px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.country-select:hover,
+.country-select:focus-visible {
+    border-bottom-color: var(--burgundy);
+    outline-offset: 2px;
+}

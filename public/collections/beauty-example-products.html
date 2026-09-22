@@ -16,14 +16,14 @@
     <meta property="og:site_name" content="Emm Luxury Hair">
     <meta property="og:title" content="Beauty example products | Emm Luxury Hair">
     <meta property="og:description" content="The Beauty example products range at Emm Luxury Hair — human hair wigs and extensions.">
-    <meta property="og:image" content="https://cdn.shopify.com/s/files/1/1009/4690/3367/files/WhatsAppImage2026-04-23at12.49.47PM.jpg?v=1789403677">
+    <meta property="og:image" content="https://cdn.shopify.com/s/files/1/1009/4690/3367/files/WhatsAppImage2026-04-23at12.49.42PM.jpg?v=1789993861">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.emmluxuryhair.com/collections/beauty-example-products">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Beauty example products | Emm Luxury Hair">
     <meta name="twitter:description" content="The Beauty example products range at Emm Luxury Hair — human hair wigs and extensions.">
-    <meta name="twitter:image" content="https://cdn.shopify.com/s/files/1/1009/4690/3367/files/WhatsAppImage2026-04-23at12.49.47PM.jpg?v=1789403677">
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"Beauty example products","description":"The Beauty example products range at Emm Luxury Hair — human hair wigs and extensions.","url":"https://www.emmluxuryhair.com/collections/beauty-example-products","mainEntity":{"@type":"ItemList","numberOfItems":1,"itemListElement":[{"@type":"ListItem","position":1,"name":"Body Wave Human Hair Bundles","url":"https://www.emmluxuryhair.com/products/body-wave-human-hair-bundles-100-virgin-remy-weft-hair-natural-black-dark-brown-single-bundle"}]}}</script>
+    <meta name="twitter:image" content="https://cdn.shopify.com/s/files/1/1009/4690/3367/files/WhatsAppImage2026-04-23at12.49.42PM.jpg?v=1789993861">
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"Beauty example products","description":"The Beauty example products range at Emm Luxury Hair — human hair wigs and extensions.","url":"https://www.emmluxuryhair.com/collections/beauty-example-products","mainEntity":{"@type":"ItemList","numberOfItems":2,"itemListElement":[{"@type":"ListItem","position":1,"name":"Natural Black Straight Lace Front Wig","url":"https://www.emmluxuryhair.com/products/natural-black-straight-lace-front-wig"},{"@type":"ListItem","position":2,"name":"Body Wave Human Hair Bundles","url":"https://www.emmluxuryhair.com/products/body-wave-human-hair-bundles-100-virgin-remy-weft-hair-natural-black-dark-brown-single-bundle"}]}}</script>
   </head>
 <body>
     <!-- Canonical site header. Every storefront page pulls this in with an include
@@ -64,6 +64,21 @@
             </nav>
             <div class="nav-backdrop"></div>
             <div class="header-actions">
+                <!-- Filled and revealed by public/js/market.js, which asks Shopify
+                     which countries this store sells to in their own currency. With
+                     nothing to offer, it stays hidden rather than showing a picker
+                     that cannot change anything. -->
+                <div class="country-picker" id="country-picker" hidden>
+                    <label class="country-picker-label" for="country-select">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        </svg>
+                        <span class="sr-only">Country and currency</span>
+                    </label>
+                    <select id="country-select" class="country-select"></select>
+                </div>
                 <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="main-nav">
                     <span class="nav-toggle-bar"></span>
                     <span class="nav-toggle-bar"></span>
@@ -89,6 +104,9 @@
             </div>
         </div>
     </header>
+    <!-- market.js waits for DOMContentLoaded before it touches the API globals,
+         so its place here — ahead of the page's own scripts — does not matter. -->
+    <script src="/js/market.js" defer></script>
 
 
     <!-- Main Content -->

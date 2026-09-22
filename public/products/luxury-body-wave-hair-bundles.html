@@ -65,6 +65,21 @@
             </nav>
             <div class="nav-backdrop"></div>
             <div class="header-actions">
+                <!-- Filled and revealed by public/js/market.js, which asks Shopify
+                     which countries this store sells to in their own currency. With
+                     nothing to offer, it stays hidden rather than showing a picker
+                     that cannot change anything. -->
+                <div class="country-picker" id="country-picker" hidden>
+                    <label class="country-picker-label" for="country-select">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        </svg>
+                        <span class="sr-only">Country and currency</span>
+                    </label>
+                    <select id="country-select" class="country-select"></select>
+                </div>
                 <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="main-nav">
                     <span class="nav-toggle-bar"></span>
                     <span class="nav-toggle-bar"></span>
@@ -90,6 +105,9 @@
             </div>
         </div>
     </header>
+    <!-- market.js waits for DOMContentLoaded before it touches the API globals,
+         so its place here — ahead of the page's own scripts — does not matter. -->
+    <script src="/js/market.js" defer></script>
 
 
     <!-- Main Content -->

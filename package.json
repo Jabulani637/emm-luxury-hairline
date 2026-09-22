@@ -10,6 +10,7 @@
     "pages": "node server/scripts/build-pages.js",
     "assets": "node server/scripts/build-assets.js",
     "verify:shopify": "node server/scripts/verify-shopify.js",
+    "verify:markets": "node server/scripts/report-markets.js",
     "token:shopify": "node server/scripts/mint-admin-token.js",
     "register:webhooks": "node server/scripts/register-webhooks.js",
     "verify:reviews": "node server/scripts/verify-reviews.js",

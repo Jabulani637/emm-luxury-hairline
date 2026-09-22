@@ -58,13 +58,15 @@ function normalizeProduct(node) {
 }
 
 /**
- * Fetch a collection by handle with its products
+ * Fetch a collection by handle with its products, priced for `country` when a
+ * shopper has picked one.
  */
-async function getCollection(handle, first = 24) {
+async function getCollection(handle, first = 24, { country } = {}) {
   const data = await shopifyFetch({
     query: GET_COLLECTION_QUERY,
     variables: { handle, first },
     bucket: 'catalog',
+    country,
   });
 
   if (!data.collection) {

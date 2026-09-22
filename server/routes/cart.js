@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { serverError } = require('../errorResponse');
+const { shopperCountry } = require('../requestCountry');
 const { cartCreate } = require('../shopify/mutations/cartCreate');
 const { cartLinesAdd } = require('../shopify/mutations/cartLinesAdd');
 const { cartLinesUpdate } = require('../shopify/mutations/cartLinesUpdate');
 const { cartDeliveryAddressUpdate } = require('../shopify/mutations/cartDeliveryAddressUpdate');
 const { cartDeliveryOptionsUpdate } = require('../shopify/mutations/cartDeliveryOptionsUpdate');
 const { cartBuyerIdentityUpdate } = require('../shopify/mutations/cartBuyerIdentityUpdate');
+const { getCart } = require('../shopify/queries/getCart');
 
 const CART_FAILED = 'We could not update your cart. Please check your connection and try again.';
 
@@ -19,7 +21,7 @@ router.post('/create', async (req, res) => {
       return res.status(400).json({ error: 'variantId is required' });
     }
 
-    const cart = await cartCreate(variantId, quantity || 1);
+    const cart = await cartCreate(variantId, quantity || 1, await shopperCountry(req));
     res.json({ cart });
   } catch (error) {
     serverError(res, 'cart.create', error, CART_FAILED);
@@ -99,27 +101,35 @@ router.post('/delivery-options', async (req, res) => {
   }
 });
 
-// POST /api/cart/buyer-identity - Clear/set buyer identity (country) on the cart.
-// Call this with an empty body just before redirecting to checkoutUrl so that
-// Shopify does NOT lock the checkout to the store's base country (GB).
-// The customer can then freely pick their own country on the checkout page.
+// POST /api/cart/buyer-identity - Put this shopper's market on their cart, and
+// hand back the cart Shopify actually has.
+//
+// The checkout button calls this first: a bag kept in localStorage can outlive
+// the cart behind it, and a dead one must be rebuilt rather than opened. With a
+// country Shopify sells to it goes on the cart, so checkout opens with that
+// country already chosen instead of locked to the store's own — measured on the
+// live shop it does not re-price the bag, which stays in the store's currency
+// until a market quotes its buyers in their own. Without a country nothing is
+// written, because the "unspecified" one (ZZ) zeroes the cart's total and
+// quantity.
 router.post('/buyer-identity', async (req, res) => {
   try {
-    const { cartId, countryCode } = req.body;
+    const { cartId } = req.body;
 
     if (!cartId) {
       return res.status(400).json({ error: 'cartId is required' });
     }
 
-    // Pass countryCode if provided, otherwise send an empty identity object
-    // which tells Shopify to stop enforcing a specific country at checkout.
-    const identity = countryCode ? { countryCode } : {};
-    const cart = await cartBuyerIdentityUpdate(cartId, identity);
+    const country = await shopperCountry(req);
+    const cart = country
+      ? await cartBuyerIdentityUpdate(cartId, { countryCode: country })
+      : await getCart(cartId);
+
     res.json({ cart });
   } catch (error) {
-    // Non-fatal for the shopper: checkout still opens, only the country
-    // pre-selection is affected, so this must not look like a hard failure.
-    serverError(res, 'cart.buyerIdentity', error, 'Checkout is ready — we could not pre-select your country.');
+    // Non-fatal for the shopper: the caller rebuilds the bag when this fails, so
+    // checkout still opens and only the market pre-selection is lost.
+    serverError(res, 'cart.buyerIdentity', error, 'Checkout is ready — we could not set your country.');
   }
 });
 

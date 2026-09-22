@@ -96,16 +96,49 @@ async function resolveApiBase() {
 }
 
 /**
+ * The country this visitor asked to be shown prices for, or null for "the
+ * store's own". The server ignores a country it cannot sell to, so remembering a
+ * choice is safe even if Shopify later closes that market.
+ */
+const COUNTRY_KEY = 'emm_country';
+
+const emmMarket = {
+  getCountry() {
+    let saved = null;
+    try {
+      saved = window.localStorage.getItem(COUNTRY_KEY);
+    } catch (_) {
+      return null; // private mode, or storage disabled
+    }
+    return typeof saved === 'string' && /^[A-Za-z]{2}$/.test(saved)
+      ? saved.toUpperCase()
+      : null;
+  },
+  setCountry(code) {
+    try {
+      if (code) {
+        window.localStorage.setItem(COUNTRY_KEY, String(code).toUpperCase());
+      } else {
+        window.localStorage.removeItem(COUNTRY_KEY);
+      }
+    } catch (_) { /* the choice simply will not persist */ }
+  },
+};
+
+/**
  * Core fetch wrapper — resolves the base URL first, then makes the request.
  */
 async function apiFetch(endpoint, options = {}) {
   const base = await resolveApiBase();
   const url  = base + endpoint;
 
+  const country = emmMarket.getCountry();
+
   try {
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
+        ...(country ? { 'X-EMM-Country': country } : null),
         ...options.headers,
       },
       ...options,
@@ -160,7 +193,10 @@ const cartAPI = {
   selectDeliveryOptions: (cartId, deliveryOptions) =>
     apiFetch('/cart/delivery-options', { method: 'POST', body: JSON.stringify({ cartId, deliveryOptions }) }),
 
-  clearBuyerIdentity: (cartId) =>
+  // Reads back the cart Shopify actually has, and puts this visitor's market on
+  // it when the X-EMM-Country header names one Shopify sells to. A null cart is
+  // one that no longer exists, which the caller rebuilds from.
+  applyBuyerIdentity: (cartId) =>
     apiFetch('/cart/buyer-identity', { method: 'POST', body: JSON.stringify({ cartId }) }),
 };
 
@@ -189,4 +225,5 @@ window.countriesAPI   = countriesAPI;
 window.ratesAPI       = ratesAPI;
 window.contactAPI     = contactAPI;
 window.subscribersAPI = subscribersAPI;
+window.emmMarket      = emmMarket;
 window.__resolveApiBase = resolveApiBase; // for debugging

@@ -11,13 +11,15 @@ const GET_PRODUCT_QUERY = `
 `;
 
 /**
- * Fetch a single product by handle
+ * Fetch a single product by handle, priced for `country` when a shopper has
+ * picked one.
  */
-async function getProduct(handle) {
+async function getProduct(handle, { country } = {}) {
   const data = await shopifyFetch({
     query: GET_PRODUCT_QUERY,
     variables: { handle },
     bucket: 'catalog',
+    country,
   });
 
   if (!data.product) {

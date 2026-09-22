@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getCollection } = require('../shopify/queries/getCollection');
+const { pricingCountry } = require('../requestCountry');
 const { serverError } = require('../errorResponse');
 
 // GET /api/collections/:handle - Get collection by handle
@@ -12,7 +13,9 @@ router.get('/:handle', async (req, res) => {
       ? Math.min(parsedFirst, 100)
       : 24;
 
-    const collection = await getCollection(handle, safeFirst);
+    const collection = await getCollection(handle, safeFirst, {
+      country: await pricingCountry(req),
+    });
 
     if (!collection) {
       return res.status(404).json({ error: 'Collection not found' });

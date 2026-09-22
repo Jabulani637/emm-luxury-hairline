@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getProducts } = require('../shopify/queries/getProducts');
 const { getProduct } = require('../shopify/queries/getProduct');
+const { pricingCountry } = require('../requestCountry');
 const { serverError } = require('../errorResponse');
 
 const ALLOWED_SORT_KEYS = new Set([
@@ -21,12 +22,14 @@ router.get('/', async (req, res) => {
 
     const safeSortKey = ALLOWED_SORT_KEYS.has(sortKey) ? sortKey : 'BEST_SELLING';
     const safeQuery = typeof query === 'string' ? query.trim().slice(0, 100) : undefined;
+    const country = await pricingCountry(req);
 
     const products = await getProducts({
       first: safeFirst,
       sortKey: safeSortKey,
       reverse: reverse === 'true',
       query: safeQuery,
+      country,
     });
 
     res.json({ products });
@@ -39,7 +42,7 @@ router.get('/', async (req, res) => {
 router.get('/:handle', async (req, res) => {
   try {
     const { handle } = req.params;
-    const product = await getProduct(handle);
+    const product = await getProduct(handle, { country: await pricingCountry(req) });
 
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });

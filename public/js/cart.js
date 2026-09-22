@@ -136,7 +136,7 @@ class CartManager {
    * the Shopify cart behind it, and visiting a cart that no longer has lines
    * sends the shopper to the storefront home instead of the payment page. So the
    * click asks Shopify for the cart it actually has — which is also the call
-   * that clears the country lock — and rebuilds the bag when that cart is gone.
+   * that sets the cart's market — and rebuilds the bag when that cart is gone.
    */
   async beginCheckout() {
     const lines = this.getCheckoutLines();
@@ -145,7 +145,7 @@ class CartManager {
     let cart = null;
     if (this.cart) {
       try {
-        const response = await window.cartAPI.clearBuyerIdentity(this.cart.id);
+        const response = await window.cartAPI.applyBuyerIdentity(this.cart.id);
         cart = response.cart;
       } catch (error) {
         console.warn('[Cart] Stored cart is no longer on Shopify:', error.message);
