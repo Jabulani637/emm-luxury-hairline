@@ -231,6 +231,29 @@ function productMeta(product, rating) {
   };
 }
 
+/**
+ * Head metadata for the page served at any /products/<handle> this build has no
+ * file for — a product published in Shopify since the last run, or a handle
+ * typed wrong. vercel.json rewrites those paths here so product.js can fetch the
+ * real product from the API: a shopper can open and buy a new wig seconds after
+ * it is published, without waiting for a build at all.
+ *
+ * `noindex` is the point of this function. The same file answers every unknown
+ * handle, so an indexable version would put a duplicate product page in front of
+ * Google for each typo and each removed product. The handle's own indexable page
+ * arrives with the next build.
+ */
+function productFallbackMeta() {
+  return {
+    title: `Product | ${SITE_NAME}`,
+    description: `${SITE_NAME} — premium human hair wigs and bundles.`,
+    ogType: 'website',
+    noindex: true,
+    ogImage: FALLBACK_IMAGE,
+    siteImage: FALLBACK_IMAGE,
+  };
+}
+
 /** Head metadata for a collection, including the virtual "all" catalogue. */
 function collectionMeta({ handle, title, description, products }) {
   const canonical = pageUrl('collections', handle);
@@ -385,6 +408,7 @@ module.exports = {
   siteSchema,
   staticMeta,
   productMeta,
+  productFallbackMeta,
   collectionMeta,
   collectionMetaFor,
   listSitemapUrls,

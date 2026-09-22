@@ -112,6 +112,12 @@ async function main() {
     written.push(writePage(file, injectSeo(templates.get('products/product.html'), meta.productMeta(product, null))));
   }
 
+  // ...and the page behind Vercel's /products/<handle> rewrite, for a handle
+  // with no file: a product published since this last ran, or one typed wrong.
+  // It comes from the same template as the pages above, so it can never drift
+  // from them, and product.js fills it from the live API.
+  written.push(writePage('pages/product.html', injectSeo(templates.get('products/product.html'), meta.productFallbackMeta())));
+
   // 3. One page per collection, plus Shopify's virtual "all".
   const handles = new Set(['all', ...(await getCollections(100)).map(c => c.handle)]);
   for (const handle of handles) {

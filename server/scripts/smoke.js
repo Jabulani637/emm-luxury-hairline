@@ -170,7 +170,13 @@ function checkBakedPages() {
     const html = fs.readFileSync(full, 'utf8');
     if (/<!--#|<!--if\s|<!--\/if/.test(html)) problems.push(`${rel}: unexpanded partial marker`);
     if (/localhost|127\.0\.0\.1/.test(html)) problems.push(`${rel}: development hostname baked in`);
-    if (!/rel="canonical"/.test(html)) problems.push(`${rel}: no canonical URL`);
+    // Either a page says which address is its own, or it says no crawler should
+    // index it at all. Only the product fallback takes the second route: one
+    // file answers every handle with no page of its own, so naming any single
+    // canonical for it would be a lie.
+    if (!/rel="canonical"/.test(html) && !/content="noindex/.test(html)) {
+      problems.push(`${rel}: no canonical URL and not noindex`);
+    }
     if (!/<meta name="description"/.test(html)) problems.push(`${rel}: no meta description`);
     for (const m of html.matchAll(/href="(\/[^"?#]*)"/g)) {
       const url = m[1];
@@ -627,9 +633,51 @@ async function postJson(name, pathname, payload, assert) {
   check(name, detail === true, typeof detail === 'string' ? detail : 'assertion failed');
 }
 
+/**
+ * A product published in Shopify since the last build has no file of its own,
+ * and used to 404 — which is exactly how the emCrown wig reached a customer.
+ * Three separate files now have to agree for that to stay fixed: the build has
+ * to write the fallback, vercel.json has to route unknown handles to it, and the
+ * page it generates has to stay out of the index while still booting the
+ * renderer. Nothing fails loudly if one of them drifts, so this is the check.
+ */
+function checkProductFallback() {
+  const read = (...parts) => fs.readFileSync(path.join(ROOT, ...parts), 'utf8');
+
+  const built = read('server', 'scripts', 'build-pages.js');
+  check('the build writes the product fallback page',
+    /writePage\('pages\/product\.html'/.test(built) && /productFallbackMeta\(\)/.test(built));
+
+  const { rewrites = [] } = JSON.parse(read('vercel.json'));
+  const rule = rewrites.find(r => String(r.source).startsWith('/products/'));
+  check('an unknown product handle routes to it',
+    !!rule && rule.destination === '/pages/product.html',
+    `rewrite is ${JSON.stringify(rule || null)}`);
+
+  const fallback = require('../pageMeta').productFallbackMeta();
+  check('the fallback is built to stay out of search results',
+    fallback.noindex === true && !fallback.canonical,
+    `noindex ${fallback.noindex}, canonical ${fallback.canonical}`);
+
+  const html = read('public', 'pages', 'product.html');
+  check('the committed fallback is noindex with no canonical of its own',
+    /content="noindex/.test(html) && !/rel="canonical"/.test(html));
+  check('the committed fallback still boots the product renderer',
+    /id="product-page"/.test(html) && /\/js\/product\.js/.test(html),
+    'needs #product-page and product.js');
+
+  // The handle's own page is the indexable one. If the fallback were ever used
+  // for products that do have a file, every product URL would be noindex.
+  check('a built product page remains indexable',
+    /content="index, follow"/.test(read('public', 'products', 'emcrown-premium-straight-wig.html')));
+  check('the fallback is not advertised in the sitemap',
+    !/pages\/product/.test(read('public', 'sitemap.xml')));
+}
+
 async function run(server) {
   checkNoBom();
   checkBakedPages();
+  checkProductFallback();
   checkPaymentStrip();
   checkNewsletter();
   checkSignupDialog();
