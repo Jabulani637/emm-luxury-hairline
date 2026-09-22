@@ -48,8 +48,15 @@ async function checkCartAndShipping(variantId) {
   console.log('\n-- cart and shipping round-trip');
 
   const created = await cartCreate(variantId, 1);
-  const lineId = created.lines.edges[0].node.id;
-  check('a new cart comes back priced', money(created.cost.totalAmount) !== null, summary(created));
+  const createdLines = created.lines?.edges || [];
+  check('the cart keeps the line we added', createdLines.length > 0,
+    `${createdLines.length} line(s) — ${summary(created)}`);
+  if (createdLines.length === 0) return;
+  const lineId = createdLines[0].node.id;
+  // Shopify accepts a sold-out variant into a cart and prices it at 0, so a
+  // non-null total proves nothing. The whole shipping chain below only means
+  // something if the bag actually costs money.
+  check('a new cart comes back priced', money(created.cost.totalAmount) > 0, summary(created));
 
   const quoted = await cartDeliveryAddressUpdate(created.id, { country: 'GB' });
   const groups = quoted.deliveryGroups?.edges || [];
@@ -133,12 +140,17 @@ async function checkAdminAccess() {
 async function run() {
   try {
     console.log('Using SHOP:', shopDomain() || '(not configured)');
-    console.log('Testing products query (first: 2)...');
-    const products = await getProducts({ first: 2 });
+    console.log('Testing products query (first: 12)...');
+    const products = await getProducts({ first: 12 });
     console.log('Products fetched:', Array.isArray(products) ? products.map(p => ({ handle: p.handle, title: p.title })) : products);
 
     if (products && products.length > 0) {
-      const handle = products[0].handle;
+      const sellable = products.find(p => (p.variants || []).some(v => v.availableForSale === true));
+      check('the store has something to buy', Boolean(sellable),
+        sellable ? `${sellable.title} (${sellable.handle})` :
+          `${products.length} published product(s) and not one in stock — checkout cannot be verified`);
+
+      const handle = (sellable || products[0]).handle;
       console.log(`Testing product by handle: ${handle}`);
       const product = await getProduct(handle);
       if (product) {
@@ -146,11 +158,13 @@ async function run() {
       } else {
         console.log('Product fetch returned null');
       }
-      const variantId = product?.variants?.[0]?.id;
-      if (variantId) {
-        await checkCartAndShipping(variantId);
+      const variant = (product?.variants || []).find(v => v.availableForSale === true);
+      if (variant) {
+        console.log(`Cart test uses in-stock variant: ${variant.title} ${variant.price?.amount} ${variant.price?.currencyCode}`);
+        await checkCartAndShipping(variant.id);
       } else {
-        check('cart round-trip needs a purchasable variant', false, 'no variant id on the first product');
+        check('cart round-trip needs a purchasable variant', false,
+          `no in-stock variant on ${handle}`);
       }
     } else {
       console.log('No products returned from shopify query. Ensure the store has published products and SHOPIFY_PUBLIC_ACCESS_TOKEN is a valid Storefront API token.');
