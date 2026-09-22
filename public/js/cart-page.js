@@ -366,28 +366,35 @@ function setupCheckoutButton() {
   checkoutButtonAttached = true;
 
   checkoutBtn.addEventListener('click', async () => {
-    const cart = window.cartManager.getCart();
-    const rawCheckoutUrl = window.cartManager.getCheckoutUrl();
-
-    if (!rawCheckoutUrl || !cart || window.cartManager.getItemCount() === 0) {
-      window.cartManager.clearCart();
-      alert('Your bag is empty — that item is no longer available to order.');
-      return;
-    }
-
     const originalText = checkoutBtn.textContent;
     checkoutBtn.disabled = true;
     checkoutBtn.textContent = 'Redirecting…';
 
+    let checkout = null;
     try {
-      await window.cartAPI.clearBuyerIdentity(cart.id);
+      checkout = await window.cartManager.beginCheckout();
     } catch (err) {
-      console.warn('[Cart] Could not clear buyer identity:', err.message);
+      console.warn('[Cart] Could not open checkout:', err.message);
     }
 
-    // Shopify's own permalink sets up the checkout session; rewriting it
-    // loses that session and bounces the customer to the store home.
-    window.location.href = rawCheckoutUrl;
+    if (!checkout || !checkout.ok) {
+      const cleared = {
+        empty: 'Your bag is empty — that item is no longer available to order.',
+        unavailable: 'That item is no longer available to order.',
+      };
+      const message = cleared[checkout && checkout.reason] ||
+        'We could not open your checkout. Please try again.';
+      if (cleared[checkout && checkout.reason]) window.cartManager.clearCart();
+      checkoutBtn.disabled = false;
+      checkoutBtn.textContent = originalText;
+      alert(message);
+      return;
+    }
+
+    // This is Shopify's own permalink, minted a moment ago by the same call
+    // that lifted the country lock. Anything older sends the shopper to the
+    // store home instead of the payment page.
+    window.location.href = checkout.checkoutUrl;
   });
 }
 

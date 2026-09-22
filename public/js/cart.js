@@ -3,6 +3,19 @@
  * Handles cart operations and localStorage persistence
  */
 
+/**
+ * Whether Shopify would take this cart to a payment page. A cart with no lines
+ * prices at 0, and Shopify answers a visit to one by redirecting to the
+ * storefront home instead of opening a checkout.
+ */
+function isBuyableCart(cart) {
+  if (!cart || !cart.checkoutUrl) return false;
+  const lines = (cart.lines && cart.lines.edges) || [];
+  if (lines.length === 0) return false;
+  const total = cart.cost && cart.cost.totalAmount && cart.cost.totalAmount.amount;
+  return parseFloat(total) > 0;
+}
+
 class CartManager {
   constructor() {
     this.cart = this.loadCart();
@@ -102,8 +115,69 @@ class CartManager {
     this.saveCart();
   }
 
-  getCheckoutUrl() {
-    return this.cart?.checkoutUrl || null;
+  /**
+   * The bag as Shopify needs to receive it: variant ids and quantities only, so
+   * a cart can be rebuilt from whatever localStorage remembers.
+   */
+  getCheckoutLines() {
+    const edges = (this.cart && this.cart.lines && this.cart.lines.edges) || [];
+    return edges
+      .map(line => ({
+        merchandiseId: line.node && line.node.merchandise && line.node.merchandise.id,
+        quantity: (line.node && line.node.quantity) || 0,
+      }))
+      .filter(line => line.merchandiseId && line.quantity > 0);
+  }
+
+  /**
+   * Open Shopify's payment page with this bag on it.
+   *
+   * The stored checkoutUrl is never used. A bag left in localStorage can outlive
+   * the Shopify cart behind it, and visiting a cart that no longer has lines
+   * sends the shopper to the storefront home instead of the payment page. So the
+   * click asks Shopify for the cart it actually has — which is also the call
+   * that clears the country lock — and rebuilds the bag when that cart is gone.
+   */
+  async beginCheckout() {
+    const lines = this.getCheckoutLines();
+    if (lines.length === 0) return { ok: false, reason: 'empty' };
+
+    let cart = null;
+    if (this.cart) {
+      try {
+        const response = await window.cartAPI.clearBuyerIdentity(this.cart.id);
+        cart = response.cart;
+      } catch (error) {
+        console.warn('[Cart] Stored cart is no longer on Shopify:', error.message);
+      }
+    }
+
+    if (!isBuyableCart(cart)) {
+      try {
+        cart = await this.rebuildCart(lines);
+      } catch (error) {
+        // Shopify answered and refused, so the bag itself is unsellable; a
+        // TypeError means the request never landed and the bag is worth keeping.
+        console.warn('[Cart] Could not rebuild the bag:', error.message);
+        return { ok: false, reason: error instanceof TypeError ? 'network' : 'unavailable' };
+      }
+    }
+
+    if (!isBuyableCart(cart)) return { ok: false, reason: 'unavailable' };
+
+    this.cart = cart;
+    this.saveCart();
+    return { ok: true, checkoutUrl: cart.checkoutUrl };
+  }
+
+  async rebuildCart(lines) {
+    const [first, ...rest] = lines;
+    let cart = (await window.cartAPI.createCart(first.merchandiseId, first.quantity)).cart;
+    if (rest.length > 0) {
+      const added = rest.map(line => ({ merchandiseId: line.merchandiseId, quantity: line.quantity }));
+      cart = (await window.cartAPI.addToCart(cart.id, added)).cart;
+    }
+    return cart;
   }
 
   getTotal() {
