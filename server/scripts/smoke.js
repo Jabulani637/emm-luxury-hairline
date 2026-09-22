@@ -650,8 +650,10 @@ function checkProductFallback() {
 
   const { rewrites = [] } = JSON.parse(read('vercel.json'));
   const rule = rewrites.find(r => String(r.source).startsWith('/products/'));
+  // cleanUrls is on, so Vercel answers 404 for the .html form of any page and a
+  // rewrite to it fails silently — every unknown handle still 404s.
   check('an unknown product handle routes to it',
-    !!rule && rule.destination === '/pages/product.html',
+    !!rule && rule.destination === '/pages/product',
     `rewrite is ${JSON.stringify(rule || null)}`);
 
   const fallback = require('../pageMeta').productFallbackMeta();
