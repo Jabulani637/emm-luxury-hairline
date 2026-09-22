@@ -1,0 +1,107 @@
+# Product pages are built files, not requests: /collections/all draws its grid
+# live from the API, so a wig added in Shopify appears in the listing at once and
+# its card links to a page that does not exist until something runs
+# `npm run pages` and publishes the result. That gap is a 404 for the shopper.
+#
+# This closes it: once an hour, and whenever the Shopify webhook asks (see
+# server/routes/webhooks.js — it cannot yet, see task #52), rebuild the pages
+# from the live catalogue and push them. Vercel serves www and Render serves the
+# API, and both deploy from a push to main, so pushing IS the deployment.
+#
+# Needs two values in the repository's settings, neither of them here:
+#   Secrets → SHOPIFY_PUBLIC_ACCESS_TOKEN   the Storefront token the API uses
+#   Variables → SHOPIFY_STORE_DOMAIN        the myshopify.com host
+name: Rebuild storefront pages from Shopify
+
+on:
+  schedule:
+    # Off the hour, so a slow run still finishes inside its window.
+    - cron: '17 * * * *'
+  # A "Run workflow" button on the Actions tab, for the moment you have just
+  # added a product and do not want to wait.
+  workflow_dispatch:
+  # Reserved for the instant trigger: the API posts this event once Shopify's
+  # webhooks are wired (blocked on the app's Client Secret reaching Render).
+  repository_dispatch:
+    types: [shopify-catalogue-changed]
+
+permissions:
+  contents: write
+
+# Two runs rebuilding into the same branch would fight over the push.
+concurrency:
+  group: rebuild-pages
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # sharp and nodemon are dev-only and the slower half of the install; the
+      # build needs express, axios and dotenv, which are ordinary dependencies.
+      - run: npm ci --omit=dev --no-audit --no-fund
+
+      - name: Build every page from the live catalogue
+        env:
+          SHOPIFY_STORE_DOMAIN: ${{ vars.SHOPIFY_STORE_DOMAIN }}
+          SHOPIFY_PUBLIC_ACCESS_TOKEN: ${{ secrets.SHOPIFY_PUBLIC_ACCESS_TOKEN }}
+          # Pinned, because the builder refuses to publish localhost as the
+          # site's canonical address rather than guessing an origin.
+          FRONTEND_URL: https://www.emmluxuryhair.com
+          BACKEND_URL: https://api.emmluxuryhair.com
+        run: npm run pages
+
+      # The builder clears the products directory before writing it, so a Shopify
+      # answer that came back empty would delete the whole storefront and this
+      # job would push the deletion. Refuse to publish a thinner site than the
+      # one already committed; a real product removal is a human decision.
+      - name: Refuse to publish an empty or shrunken catalogue
+        run: |
+          built=$(find public/products -name '*.html' | wc -l)
+          # grep -c exits 1 on no matches, which bash -e would take down with it
+          # before the message below ever prints.
+          committed=$(git ls-files public/products | grep -c '\.html$' || true)
+          echo "built $built product pages, $committed committed"
+          if [ "$built" -eq 0 ]; then
+            echo "::error::Shopify returned no products, so this build would empty the storefront."
+            exit 1
+          fi
+          if [ "$built" -lt "$committed" ]; then
+            echo "::error::The live catalogue has fewer products than the committed pages ($built < $committed)."
+            echo "If a product really was deleted, run the Rebuild workflow by hand once you are sure."
+            exit 1
+          fi
+
+      - name: Push the rebuilt pages
+        run: |
+          git add --all public
+          if git diff --cached --quiet; then
+            echo "Nothing changed in Shopify since the last build."
+            exit 0
+          fi
+
+          # Vercel checks that the author of a pushed commit may deploy the
+          # project, so the commit carries your identity rather than the bot's.
+          git config user.name "Jabulani637"
+          git config user.email "261686475+Jabulani637@users.noreply.github.com"
+
+          added=$(git diff --cached --name-only --diff-filter=A -- 'public/products/*.html' \
+            | sed 's|.*/||; s|\.html$||' | paste -sd ', ')
+          removed=$(git diff --cached --name-only --diff-filter=D -- 'public/products/*.html' \
+            | sed 's|.*/||; s|\.html$||' | paste -sd ', ')
+
+          subject="Rebuild storefront pages from Shopify"
+          if [ -n "$added" ]; then subject="Publish $added"; fi
+
+          body="Built by the scheduled Rebuild workflow from the live Shopify catalogue."
+          if [ -n "$removed" ]; then body="$body"$'\n'"Pages removed: $removed"; fi
+
+          git commit -q -m "$subject" -m "$body"
+          git push
