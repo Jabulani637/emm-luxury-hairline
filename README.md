@@ -466,12 +466,28 @@ form-action 'self'; base-uri 'self'; object-src 'none';
 frame-ancestors 'self'; upgrade-insecure-requests
 ```
 
-Committed is not live: a header in this file is inert until the push that deploys
-it, and the acceptance test is a response from the host, not a diff here —
+**Live since 23 Sep 2026, 23:26Z.** Compared byte-for-byte against this file's
+value from the running host: 346 bytes committed, 346 bytes returned, identical.
+Every page returns it (`/`, `/cart`, all ten checked routes, every product and
+collection address) and so does every asset — `/css/main.css`, `/js/api.js`,
+`/assets/EmmLuxuryHair.svg`, `robots.txt`, `sitemap.xml`. The four 308s measured —
+`/index.html`, `/cart.html`, `/products/product`, `/admin/reviews` — carry no CSP:
+the header rides whichever response Vercel produces, and for those it is a redirect.
+Re-prove it with:
 
 ```
 curl -sI https://www.emmluxuryhair.com/cart | grep -i content-security-policy
 ```
+
+And the part a header cannot prove: that nothing customers use was silently cut.
+Driven against the live host after the deploy, `/collections/all` rendered 12
+product cards, which requires the cross-origin `https://api.emmluxuryhair.com`
+fetch the policy grants by name; its images came from both `www` and
+`cdn.shopify.com` with zero broken; on `/cart` the three `style="display: none"`
+attributes still computed to `display: none`, so the `style-src` weakening earns
+its place; `cartManager.addToCart()` succeeded on a product page and the header
+badge went `0 → 1`; and the browser console stayed empty on all three page types,
+where a refused script, image, font or fetch each logs an error.
 
 Why each grant is there, from counting the built output rather than from a
 template. Across the 17 committed pages and their CSS and JS there is no inline
@@ -520,6 +536,24 @@ deleted it reports that host too. It excuses only `www.emmluxuryhair.com`,
 `emmluxuryhair.com` and loopback, deliberately not the whole `*.emmluxuryhair.com`
 suffix — the API host is the case where `'self'` does not apply, and a suffix match
 would have hidden exactly that mistake.
+
+**One policy, two hosts.** `server/index.js` has set these same directives on the API
+host through `helmet` for some time, so the grant list was already agreed once and
+this copy is consistent rather than novel — though the API host mostly 301s documents
+here and serves JSON, so it proved nothing about these pages. That proof is the
+browser pass above. The two differ only in what helmet's `useDefaults` adds and this
+file has no equivalent of: `script-src-attr 'none'` and `frame-src 'self'`. Nothing
+on the storefront uses an attribute handler, so matching the API host later is one
+line in each copy — and `npm run smoke` reads only the `vercel.json` policy, so the
+helmet block has to be kept in step by hand.
+
+**A grant nothing uses yet.** Thirteen pages link Google's `DM Sans` stylesheet, and
+no rule in `public/css` asks for that family — the site sets type in Georgia and a
+system stack, so no font file is ever fetched and `font-src
+https://fonts.gstatic.com` is unexercised. Dropping the `<link>` would take a
+render-blocking third-party request off thirteen pages, and then `style-src` could
+lose `fonts.googleapis.com` and `font-src` could lose `gstatic` altogether. That is
+the merchant's typography call, not a cleanup to slip into a security commit.
 
 An unknown path gets Vercel's own 404 page — the status is what matters, since a
 soft 404 that shows the homepage reads to Google as duplicate content. Express

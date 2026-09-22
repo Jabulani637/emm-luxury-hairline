@@ -16,9 +16,9 @@ const router = express.Router();
  * at all.
  *
  * The upstream call is made from here rather than from the page so the browser
- * only ever contacts this API. The storefront's Content-Security-Policy is still
- * being staged behind measured traffic, and adding a currency vendor to its
- * allow-list to serve a decorative number would widen it for every page.
+ * only ever contacts this API. The storefront now ships a live
+ * Content-Security-Policy, and adding a currency vendor to its allow-list to
+ * serve a decorative number would widen a policy that guards every page.
  */
 
 const RATE_SOURCE = 'https://open.er-api.com/v6/latest/GBP';
