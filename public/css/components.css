@@ -1911,6 +1911,8 @@ textarea.form-input {
 }
 
 .form-status {
+    /* Empty, it would be a stray padded box; the two state classes below are
+       what reveal it, so a script only has to change the class. */
     display: none;
     margin: 14px 0 0;
     padding: 14px 16px;
@@ -1920,12 +1922,14 @@ textarea.form-input {
 }
 
 .form-status.is-success {
+    display: block;
     background: rgba(46, 125, 50, 0.10);
     color: #1b5e20;
     border: 1px solid rgba(46, 125, 50, 0.30);
 }
 
 .form-status.is-error {
+    display: block;
     background: rgba(211, 47, 47, 0.08);
     color: #b71c1c;
     border: 1px solid rgba(211, 47, 47, 0.30);

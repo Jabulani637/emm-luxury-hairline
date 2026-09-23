@@ -123,7 +123,7 @@ A source that is not in that map — the product and collection templates, the
 admin shell — is read as a base and never copied out, which is how a page that
 only works on one host stays off the other.
 
-`npm run smoke` boots the server on port 4399 and runs 62 checks — that
+`npm run smoke` boots the server on port 4399 and runs 63 checks — that
 the committed files in `public/` are fully built and every sitemap URL has a file
 behind it, that each page renders with its chrome and no unexpanded marker, that
 the hamburger, the small-screen nav panel, its CSS and `header-nav.js` still agree
@@ -133,7 +133,8 @@ and `/api/subscribers` still match the table in `supabase/schema.sql`, that the
 `.currency-notice` styles still describe the same two-mode currency display, that
 the published delivery table still prices each named zone, lets Shopify's own quote
 win, and answers a country no zone names with "no standing price" rather than a
-400, that
+400, that a `.form-status` box is hidden while empty and revealed by either state
+class (which is how a stored review looked like a dead button), that
 legacy URLs 301 and unknown
 URLs 404, that non-canonical
 hostnames hand over without bouncing `/api` or the admin queue, that `/api/config`
@@ -376,6 +377,13 @@ the one endpoint that lists pending submissions is behind the admin sign-in.
 
 Shoppers submit on the product page or `/pages/reviews`; every submission is
 stored as `pending` and nothing appears on the site until it is approved.
+
+The line the form answers with is a `.form-status` paragraph that `reviews.js`
+fills in and classes up (`is-success` / `is-error`) but never shows itself — the
+CSS reveals it on the class alone. That matters because the script's part was
+always working: a review was validated, stored and acknowledged into a box
+`components.css` had pinned to `display: none`, so a successful submission looked
+identical to a dead button.
 
 ```
 POST /api/reviews            → pending row (validated by server/reviews/schema.js)

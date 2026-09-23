@@ -621,6 +621,29 @@ function checkPublishedShippingRates() {
     problems.length === 0, problems.slice(0, 4).join(', ') || 'table, route, client, markup and styles all agree');
 }
 
+/**
+ * Every form's one-line reply is a `.form-status` paragraph, and two of the four
+ * scripts that write one — reviews.js and newsletter.js — change only its class.
+ * So the CSS has to do the revealing: hidden while empty, shown under either state
+ * class. When the base rule hid the box and no state class brought it back, a
+ * review that had been accepted and stored looked exactly like a dead button.
+ */
+function checkFormStatusMessages() {
+  const css = fs.readFileSync(path.join(ROOT, 'public', 'css', 'components.css'), 'utf8');
+  const problems = [];
+
+  const block = selector => (css.match(new RegExp(`${selector.replace(/\./g, '\\.')} \\{[\\s\\S]*?\\n\\}`)) || [''])[0];
+
+  const base = block('.form-status');
+  if (!/display:\s*none/.test(base)) problems.push('.form-status no longer hides itself while empty');
+  for (const state of ['.form-status.is-success', '.form-status.is-error']) {
+    if (!/display:\s*block/.test(block(state))) problems.push(`${state} never reveals the box`);
+  }
+
+  check('a form has something to say, and CSS lets it say it',
+    problems.length === 0, problems.join(', ') || 'hidden while empty, shown under either state class');
+}
+
 /** A storefront page: real header and footer, no unexpanded partial markers. */
 async function page(name, pathname, { navActive = false, drawer = true, jsonLd = false } = {}) {
   const r = await get(pathname);
@@ -865,6 +888,7 @@ async function run(server) {
   checkLocalCurrency();
   checkShippingTotals();
   checkPublishedShippingRates();
+  checkFormStatusMessages();
 
   for (const [name, pathname, opts] of [
     ['homepage', '/', { navActive: true, jsonLd: true }],
