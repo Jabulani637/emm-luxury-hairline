@@ -64,10 +64,11 @@
             </nav>
             <div class="nav-backdrop"></div>
             <div class="header-actions">
-                <!-- Filled and revealed by public/js/market.js, which asks Shopify
-                     which countries this store sells to in their own currency. With
-                     nothing to offer, it stays hidden rather than showing a picker
-                     that cannot change anything. -->
+                <!-- Filled and revealed by public/js/market.js from Shopify's own list
+                     of countries a buyer may check out from. Choosing one puts that
+                     country on the cart and prints every price in that country's money,
+                     so the option labels name the currency. It stays hidden only while
+                     Shopify lists no countries at all. -->
                 <div class="country-picker" id="country-picker" hidden>
                     <label class="country-picker-label" for="country-select">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

@@ -110,24 +110,36 @@ function handleFromLocation(kind) {
   return new URLSearchParams(window.location.search).get('handle') || '';
 }
 
-/* ── Local-currency hints ─────────────────────────────────────────────── */
+/* ── Local-currency prices ────────────────────────────────────────────── */
 
 /**
- * The store charges in pounds and that does not change. What can change is how
- * readable a pound figure is to someone whose rent is paid in naira, so every
- * standalone price gets a second line showing what it roughly equals in the
- * money the visitor's own browser reports.
+ * Two modes off one country-to-currency map.
  *
- * Three rules keep that honest:
- *   - The pound figure is never replaced, moved or restyled. It is the price.
- *   - The hint is rounded to whole units. An indicative number that quotes
+ * Chosen — the header picker names a country whose money is not sterling, so
+ * every standalone price on the page is *replaced* by its equivalent. Someone
+ * who has just told the store where they live expects to read their own
+ * figures, and a second line under each price is a poor answer to that.
+ *
+ * Inferred — nobody chose anything, but the browser reports a non-GBP region.
+ * Then the pound figure stays the headline and a smaller ≈ line goes under it,
+ * which is as much as an unasked-for guess about someone's money can fairly
+ * claim to be.
+ *
+ * In both modes the store charges in pounds, and Shopify's own checkout says so
+ * once the basket arrives there. Four rules keep that honest:
+ *   - Converted figures round to whole units. An indicative number that quotes
  *     cents is pretending to a precision it does not have.
+ *   - A replaced price names the real pound amount in its title, so the figure
+ *     can be checked without clicking anything.
+ *   - One line at the top of the page states the currency and the charge. A
+ *     shopper who picked R should not have to hunt for why £ appears at
+ *     checkout.
  *   - Anything missing — no region, no rate for it, a failed call — means no
- *     hint appears. Silence is not a failure state on a decorative figure.
+ *     hint appears and no price changes. Silence is not a failure state here.
  */
 
 // ISO region → the currency priced there. Only places this store ships to; a
-// region that is not listed gets no hint rather than a guessed one.
+// region that is not listed earns neither a hint nor a conversion.
 const REGION_CURRENCY = {
   IE: 'EUR', DE: 'EUR', FR: 'EUR', NL: 'EUR', BE: 'EUR', AT: 'EUR', IT: 'EUR',
   ES: 'EUR', PT: 'EUR', FI: 'EUR', GR: 'EUR', LU: 'EUR', MT: 'EUR', CY: 'EUR',
@@ -151,6 +163,7 @@ const REGION_CURRENCY = {
 const PRICE_SELECTOR = [
   '.product-price',
   '.current-price',
+  '.compare-at-price',
   '.cart-item-price',
   '.search-result-price',
   '.summary-price',
@@ -162,34 +175,48 @@ const PRICE_SELECTOR = [
 
 const GBP_AMOUNT = /^£\s*([\d,]+(?:\.\d{1,2})?)$/;
 
+/** The money shoppers in this country read, or null when it is sterling. */
+function currencyForCountry(code) {
+  const currency = REGION_CURRENCY[(code || '').toUpperCase()];
+  return currency && currency !== 'GBP' ? currency : null;
+}
+
+/** What the header picker was told, as opposed to what the browser implies. */
+function displayCurrency() {
+  const market = window.emmMarket;
+  return market ? currencyForCountry(market.getCountry()) : null;
+}
+
 const visitorCurrency = (function () {
   const tags = (navigator.languages && navigator.languages.length)
     ? navigator.languages
     : [navigator.language || ''];
 
   for (const tag of tags) {
-    const code = REGION_CURRENCY[(tag.split('-')[1] || '').toUpperCase()];
-    if (code && code !== 'GBP') return code;
+    const code = currencyForCountry(tag.split('-')[1] || '');
+    if (code) return code;
   }
   return null;
 })();
 
 let localRates = null;
 
-function approxOf(amount) {
-  const rate = localRates && localRates[visitorCurrency];
-  if (!rate) return null;
-
+function formatIn(amount, currency) {
   try {
     return new Intl.NumberFormat(navigator.language || 'en', {
       style: 'currency',
-      currency: visitorCurrency,
+      currency,
       maximumFractionDigits: 0,
       minimumFractionDigits: 0,
-    }).format(amount * rate);
+    }).format(amount);
   } catch (error) {
     return null; // a currency this browser cannot name
   }
+}
+
+function converted(gbpAmount, currency) {
+  const rate = localRates && localRates[currency];
+  return rate ? formatIn(gbpAmount * rate, currency) : null;
 }
 
 function addNoteAfter(node) {
@@ -207,47 +234,85 @@ function addNoteAfter(node) {
 }
 
 /**
- * Appends the hint inside the price element rather than beside it: a nested
- * block always lands under its own number, whereas a sibling would be dropped
- * into whatever flex row the price happens to sit in.
+ * One line under the header rather than one per price: in chosen mode every
+ * figure on the page carries the same caveat, and repeating it nine times in a
+ * product grid reads as noise instead of as disclosure.
+ */
+function showCurrencyNotice(currency) {
+  if (document.querySelector('.currency-notice')) return;
+
+  const notice = document.createElement('p');
+  notice.className = 'currency-notice';
+  notice.textContent = 'Prices shown in ' + currency
+    + ' at today\u2019s exchange rate. Your order is charged in British pounds (GBP).';
+
+  const header = document.getElementById('main-header');
+  if (header) {
+    header.insertAdjacentElement('afterend', notice);
+  } else {
+    document.body.insertBefore(notice, document.body.firstChild);
+  }
+}
+
+/**
+ * Prices are rewritten where they are read, not where they are built: the same
+ * three characters after a £ mean the same here whether a template, an API
+ * render or the cart drawer put them on the page.
+ *
+ * The rewrite goes inside the price element in hint mode because a nested block
+ * always lands under its own number, whereas a sibling would be dropped into
+ * whatever flex row the price happens to sit in.
  */
 function decoratePrices(root) {
-  if (!visitorCurrency || !localRates) return;
+  const chosen = displayCurrency();
+  const target = chosen || visitorCurrency;
+  if (!target || !localRates) return;
 
   const scope = root || document;
   const targets = scope.querySelectorAll ? scope.querySelectorAll(PRICE_SELECTOR) : [];
-  let added = 0;
+  let touched = 0;
 
   for (const el of targets) {
-    // A price that already carries a hint has an element child, so this one
-    // check both finds leaf elements and keeps re-decoration idempotent.
+    // A price that already carries a hint has a child, so this one check both
+    // finds leaf elements and keeps re-decoration idempotent. A converted price
+    // needs no such guard: its text no longer starts with a £, so it never
+    // matches twice.
     if (el.firstElementChild) continue;
 
     const match = GBP_AMOUNT.exec(el.textContent.trim());
     if (!match) continue;
 
     const amount = parseFloat(match[1].replace(/,/g, ''));
-    if (!amount) continue;
+    // A zero total still has to convert, or a page reading one currency shows
+    // two. A zero does not earn a ≈ line, which is only ever a rounding of more
+    // than nothing.
+    if (!amount && !chosen) continue;
 
-    const approx = approxOf(amount);
-    if (!approx) continue;
+    const figure = converted(amount, target);
+    if (!figure) continue;
 
-    const hint = document.createElement('span');
-    hint.className = 'price-approx';
-    hint.textContent = '\u2248 ' + approx;
-    hint.title = 'About ' + approx + ' at today\u2019s exchange rate. '
-      + 'The price shown in \u00a3 is what you pay.';
-    el.appendChild(hint);
-    added++;
+    if (chosen) {
+      el.textContent = figure;
+      el.title = 'Charged as ' + match[0] + ' in GBP at checkout.';
+    } else {
+      const hint = document.createElement('span');
+      hint.className = 'price-approx';
+      hint.textContent = '\u2248 ' + figure;
+      hint.title = 'About ' + figure + ' at today\u2019s exchange rate. '
+        + 'The price shown in \u00a3 is what you pay.';
+      el.appendChild(hint);
 
-    if (el.id === 'cart-total') addNoteAfter(el);
+      if (el.id === 'cart-total') addNoteAfter(el);
+    }
+    touched++;
   }
 
-  if (added) document.documentElement.classList.add('has-price-approx');
+  if (chosen && touched) showCurrencyNotice(chosen);
 }
 
-function startLocalCurrencyHints() {
-  if (!visitorCurrency || typeof window.ratesAPI === 'undefined') return;
+function startLocalCurrencyPrices() {
+  if (!displayCurrency() && !visitorCurrency) return;
+  if (typeof window.ratesAPI === 'undefined') return;
 
   decoratePrices(document);
 
@@ -275,11 +340,14 @@ function startLocalCurrencyHints() {
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', startLocalCurrencyHints);
+  document.addEventListener('DOMContentLoaded', startLocalCurrencyPrices);
 } else {
-  startLocalCurrencyHints();
+  startLocalCurrencyPrices();
 }
 
 window.escapeHtml = escapeHtml;
 window.createProductCard = createProductCard;
 window.handleFromLocation = handleFromLocation;
+// market.js names the money on each picker option, and one copy of that map is
+// the difference between the label and the price agreeing forever.
+window.emmCurrency = { currencyForCountry };

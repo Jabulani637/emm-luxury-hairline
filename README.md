@@ -123,14 +123,15 @@ A source that is not in that map — the product and collection templates, the
 admin shell — is read as a base and never copied out, which is how a page that
 only works on one host stays off the other.
 
-`npm run smoke` boots the server on port 4399 and runs 43 checks — that
+`npm run smoke` boots the server on port 4399 and runs 61 checks — that
 the committed files in `public/` are fully built and every sitemap URL has a file
 behind it, that each page renders with its chrome and no unexpanded marker, that
 the hamburger, the small-screen nav panel, its CSS and `header-nav.js` still agree
 with each other, that the newsletter box, its confirmation dialog, `newsletter.js`
 and `/api/subscribers` still match the table in `supabase/schema.sql`, that the
-`/api/rates` route, `api.js`, `shared.js` and the `.price-approx` styles still
-describe the same local-currency hint, that legacy URLs 301 and unknown
+`/api/rates` route, `api.js`, `shared.js`, `market.js` and the `.price-approx` and
+`.currency-notice` styles still describe the same two-mode currency display, that
+legacy URLs 301 and unknown
 URLs 404, that non-canonical
 hostnames hand over without bouncing `/api` or the admin queue, that `/api/config`
 leaks no secret, and that the queue refuses an unauthenticated caller. Nothing is
@@ -245,19 +246,47 @@ installs with `--omit=dev`.
 ### Prices in the shopper's own money
 
 The store is a British store: Shopify charges in pounds, the cart is a GBP cart,
-and nothing here changes that. What `shared.js` adds is a second line under each
-price — `≈ $669` — for a visitor whose browser reports a region that prices in
-something else. A customer in Lagos or Toronto sees roughly what the number
-means without doing sums, and a customer in Leeds sees nothing extra at all.
+and nothing here changes that. What changes is which figures the page prints, and
+`shared.js` does that in two modes off one country-to-currency map:
+
+* **Chosen.** The header picker names a country whose money is not sterling, and
+  every standalone price on the page is *replaced* by its equivalent — the grid
+  cards, the product price and its strikethrough, the cart line, subtotal,
+  shipping estimate and total. Each converted element carries the real pound
+  figure in its `title`, and one line under the header states both: *"Prices shown
+  in ZAR at today's exchange rate. Your order is charged in British pounds
+  (GBP)."* A `£0.00` converts too, because a page reading one currency must not
+  show two. The picker's own option labels come from the same map — "South Africa
+  (ZAR)", "Nigeria (NGN)", and a plain name for a country the map does not price —
+  so a label cannot promise a figure the page will not print.
+* **Inferred.** Nobody has chosen anything and the browser reports a non-GBP
+  region. Then the pound figure stays the headline and a smaller `≈ $669` line
+  goes under it, with the cart page spelling out that ≈ figures are guidance only.
+  An unasked-for guess about someone's money earns a hint, not a rewrite.
 
 The rate comes from `GET /api/rates`, which reads open.er-api.com (no key,
 refreshed daily) and caches the answer for a day. It is fetched by Render rather
 than by the page so the browser only ever contacts this API: a currency vendor
-would have no place in the policy the storefront is meant to ship with, and
-widening it for a decorative figure would apply to every page. If the call
-fails, or the visitor's region is not in the map, or the amount is zero, no hint
-appears — the pound price is never replaced, restyled or removed by any of this,
-and the cart page spells out that the ≈ figures are guidance only.
+would have no place in the policy the storefront ships with, and widening it for a
+display figure would apply to every page. If the call fails, or the region is not
+in the map, or the browser cannot name the currency, nothing is added and nothing
+is replaced — silence, not a wrong number.
+
+What stays in pounds: the figures baked into the committed HTML, the JSON-LD price
+statements, and everything Shopify's own checkout shows. The conversion happens in
+the browser at display time, so a crawler and the merchant's order record both read
+GBP. Measured on the local server on 23 Sep 2026 with the picker on South Africa
+(rate 21.72): `£500.00` printed as `ZAR 10,861` with title *"Charged as £500.00 in
+GBP at checkout."*, the cart line, subtotal and total all three converted, the
+published `£23.99` International estimate showing as `ZAR 521`, and an empty bag's
+`£0.00` as `ZAR 0`. With the choice cleared, the same collection grid rendered
+`£400.00` over `≈ $535` and no notice line, and the console stayed empty either way.
+
+To make the *charge* local money rather than the display is a Shopify-side step, not
+a code one: `npm run verify:markets` currently reports 0 of 185 offered countries
+priced in their own currency with a catalogue behind them, so there is no market for
+this site to read a local price from. Until one exists the picker converts for
+legibility and pounds remain the amount due.
 
 ### What the bag total includes
 

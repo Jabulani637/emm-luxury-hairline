@@ -3009,11 +3009,14 @@ textarea.form-input {
 }
 
 /* ----------------------------
-   Local-currency hints
-   shared.js appends a .price-approx line inside every standalone £ price, but
-   only for a visitor whose browser reports a non-GBP region. The pound figure
-   stays the headline: the hint is smaller, muted, prefixed with ≈ and rounded
-   to whole units, so nothing on the page can be misread as the amount due.
+   Local-currency prices
+   Two modes, both driven by shared.js. When nobody has chosen anything and the
+   browser reports a non-GBP region, it appends a .price-approx line inside every
+   standalone £ price: the pound figure stays the headline, and the hint is
+   smaller, muted, prefixed with ≈ and rounded to whole units, so nothing on the
+   page can be misread as the amount due. When the header picker names a country
+   priced elsewhere, it replaces those figures with the local equivalent and shows
+   the single .currency-notice line under the header instead.
 ----------------------------- */
 
 .price-approx {
@@ -3037,6 +3040,18 @@ textarea.form-input {
     font-size: 12px;
     line-height: 1.5;
     color: var(--ink-muted);
+}
+
+/* One line for the whole page, directly under the header, naming the currency
+   every figure below is showing and the one the order is charged in. */
+.currency-notice {
+    margin: 0;
+    padding: 8px 16px;
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: center;
+    color: var(--ink-muted);
+    background: var(--blush-light);
 }
 
 /* ── Country and currency picker ──────────────────────────────────────

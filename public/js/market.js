@@ -7,25 +7,36 @@
  * which is what lets the shopper fill in their own address instead of the store's
  * home country.
  *
- * The label carries a currency only for the countries listed under `markets`,
- * which are the ones Shopify quotes in their own money *and* has published a
- * catalogue to. That list is empty today, so the control reads as a plain country
- * list rather than promising prices it cannot convert yet.
+ * Each label names the money that country's shoppers would read, so the control
+ * cannot promise a figure the page will not print: the answer comes from the same
+ * country-to-currency map shared.js uses to rewrite prices. A Shopify market wins
+ * where one exists, because that money is priced in a published catalogue rather
+ * than converted for display — until then the store charges in pounds whatever the
+ * page shows, and the line under the header says so.
  *
  * A choice is saved to localStorage and read from there by api.js, which sends it
  * as X-EMM-Country on every request. The page reloads after picking because prices
  * are drawn from three places — the API-rendered grids, the cart, and the figures
  * baked into the static HTML for search engines — and a fresh document is the one
- * path that refreshes all three the same way.
+ * path that refreshes all three the same way. Those baked figures stay in pounds,
+ * which is what a crawler and the shop's own checkout both read.
  */
 (function () {
   const STORE_ENTRY = '';
 
   function labelFor(country, market, shopCurrency) {
-    if (!market || market.currency === shopCurrency) return country.name;
-    return country.name + ' (' + market.currency + (market.symbol && market.symbol !== market.currency
+    // Shopify's own currency first, because that is money the shop has priced a
+    // catalogue in. Otherwise the shared map answers with the money this site
+    // converts to when that country is chosen — the same map the price rewrite
+    // reads, so a label cannot promise what the page will not deliver.
+    const currency = (market && market.currency)
+      || (window.emmCurrency && window.emmCurrency.currencyForCountry(country.code));
+    if (!currency || currency === shopCurrency) return country.name;
+
+    const symbol = market && market.symbol && market.symbol !== market.currency
       ? ' ' + market.symbol
-      : '') + ')';
+      : '';
+    return country.name + ' (' + currency + symbol + ')';
   }
 
   function buildOptions(select, data) {

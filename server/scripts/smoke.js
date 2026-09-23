@@ -395,11 +395,13 @@ function checkMobileNav() {
 }
 
 /**
- * The "≈ in your money" line spans five files: the rates route, api.js,
- * shared.js, the class list it hunts for prices in, and the stylesheet that
- * makes the hint look subordinate to the pound figure. Every one of those links
- * fails silently — a renamed price class just means that price stops showing
- * the hint, and nobody notices on a UK browser where no hint shows at all.
+ * The "prices in your money" feature spans six files: the rates route, api.js,
+ * shared.js, market.js, the class list it hunts for prices in, and the
+ * stylesheet that styles both the ≈ hint and the notice line. Every one of those
+ * links fails silently — a renamed price class just means that price stops
+ * converting, a picker that stores its country under another key leaves the page
+ * reading pounds, and nobody notices on a UK browser where nothing converts at
+ * all.
  */
 function checkLocalCurrency() {
   const read = (...parts) => fs.readFileSync(path.join(ROOT, ...parts), 'utf8');
@@ -407,6 +409,7 @@ function checkLocalCurrency() {
   const mounted = read('server', 'index.js');
   const api = read('public', 'js', 'api.js');
   const script = read('public', 'js', 'shared.js');
+  const picker = read('public', 'js', 'market.js');
   const components = read('public', 'css', 'components.css');
   const markup = [
     read('server', 'views', 'partials', 'cart-drawer.html'),
@@ -423,10 +426,29 @@ function checkLocalCurrency() {
   if (!/window\.ratesAPI\s*=/.test(api)) problems.push('api.js does not expose ratesAPI');
 
   if (!/REGION_CURRENCY/.test(script)) problems.push('shared.js has no region to currency map');
-  if (!/code !== 'GBP'/.test(script)) {
+  if (!/!== 'GBP'/.test(script)) {
     problems.push('a UK visitor would be shown a conversion of pounds into pounds');
   }
   if (!/price-approx/.test(script)) problems.push('shared.js writes no hint element');
+
+  // The header picker and the price rewrite have to agree on one map and one
+  // stored country, or the option a shopper clicks promises money the page never
+  // prints.
+  if (!/window\.emmMarket/.test(script)) {
+    problems.push('shared.js never asks the picker which country was chosen, so prices stay in pounds');
+  }
+  if (!/window\.emmCurrency\s*=/.test(script)) {
+    problems.push('shared.js exports no country to currency lookup for the picker labels');
+  }
+  if (!/emmCurrency/.test(picker) || !/currencyForCountry/.test(picker)) {
+    problems.push('market.js labels its options without the map the prices use');
+  }
+  if (!/el\.textContent = figure/.test(script)
+    || !/order is charged in British pounds/.test(script)) {
+    problems.push('a converted price does not say which currency the order is charged in');
+  }
+  if (!/currency-notice/.test(script)) problems.push('shared.js writes no page-level currency notice');
+  if (!/\.currency-notice \{/.test(components)) problems.push('components.css has no .currency-notice rule');
 
   const selectors = (script.match(/const PRICE_SELECTOR = \[([\s\S]*?)\]\.join/) || [, ''])[1]
     .split(',')
@@ -444,8 +466,8 @@ function checkLocalCurrency() {
   }
   if (!/guidance only/.test(script)) problems.push('nothing tells the shopper the ≈ figure is not the charge');
 
-  check('local-currency hints (rates route through to the hint styles)',
-    problems.length === 0, problems.slice(0, 4).join(', ') || 'route, client, script, selectors and CSS all agree');
+  check('local-currency prices (rates route, picker and both display modes)',
+    problems.length === 0, problems.slice(0, 4).join(', ') || 'route, client, picker, script, selectors and CSS all agree');
 }
 
 function checkShippingTotals() {
