@@ -3104,3 +3104,27 @@ textarea.form-input {
     border-bottom-color: var(--burgundy);
     outline-offset: 2px;
 }
+
+/* Phones — the other half of the rule in main.css that gives .header-content
+   flex-wrap. There the controls take a line of their own; all this section
+   needs is that the picker not widen that line. */
+@media (max-width: 640px) {
+    /* max-width alone does not clip it: a flex item's automatic minimum size
+       is its content's, and a select measures its content against the longest
+       option in the list — every country Shopify sells to, "United Arab
+       Emirates (AED)" among them. min-width: 0 is what makes the 132px cap the
+       width that counts. */
+    .country-picker,
+    .country-select {
+        min-width: 0;
+    }
+}
+
+/* 320px phones: main.css tightens the gaps at this width and this is the
+   other half. The label truncates on itself — which is what the cap has
+   always been for — rather than the line pushing the bag icon off screen. */
+@media (max-width: 380px) {
+    .country-select {
+        max-width: 104px;
+    }
+}

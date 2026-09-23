@@ -644,6 +644,67 @@ function checkFormStatusMessages() {
     problems.length === 0, problems.join(', ') || 'hidden while empty, shown under either state class');
 }
 
+/**
+ * The header row is one flex line on a desktop, and at 360px that line needs
+ * 467px of it. Before this check existed the store name was squeezed into a
+ * 74px column, wrapped to three lines, and — nothing clipping it — its words
+ * painted straight through the country picker.
+ *
+ * The rules that stop that are split over two files, because each file owns
+ * its own selectors: main.css lays the row out, components.css keeps the
+ * picker from widening it. So this reads both.
+ */
+function checkMobileHeader() {
+  const problems = [];
+
+  const block = (text, at) => {
+    if (at === -1) return '';
+    let i = text.indexOf('{', at), depth = 0;
+    const start = i;
+    for (; i < text.length; i++) {
+      if (text[i] === '{') depth++;
+      else if (text[i] === '}' && --depth === 0) return text.slice(start + 1, i);
+    }
+    return '';
+  };
+  const media = (css, query) => {
+    const blocks = [];
+    for (let at = css.indexOf(`@media ${query}`); at !== -1; at = css.indexOf(`@media ${query}`, at + 1)) {
+      blocks.push(block(css, at));
+    }
+    return blocks;
+  };
+  const rule = (text, selector) => block(text, text.indexOf(selector));
+
+  const PHONE = '(max-width: 640px)';
+  const main = fs.readFileSync(path.join(ROOT, 'public', 'css', 'main.css'), 'utf8');
+  const components = fs.readFileSync(path.join(ROOT, 'public', 'css', 'components.css'), 'utf8');
+
+  const row = media(main, PHONE).join('\n');
+  if (!row) problems.push('main.css has no phone-width header block');
+  if (!/flex-wrap:\s*wrap/.test(rule(row, '.header-content'))) {
+    problems.push('.header-content cannot wrap, so the controls squeeze the store name');
+  }
+  if (!/flex-basis:\s*100%/.test(rule(row, '.header-actions'))) {
+    problems.push('.header-actions no longer takes a line of its own');
+  }
+
+  const name = rule(row, '.logo span');
+  if (!/white-space:\s*nowrap/.test(name)) problems.push('the store name wraps to several lines again');
+  if (!/overflow:\s*hidden/.test(name)) problems.push('nothing clips the store name');
+  if (!/text-overflow:\s*ellipsis/.test(name)) problems.push('so a name too long for the line runs out under the picker');
+
+  const shrinkable = media(components, PHONE)
+    .some(b => /min-width:\s*0/.test(rule(b, '.country-picker')));
+  if (!shrinkable) {
+    problems.push('the country picker cannot shrink below its longest option');
+  }
+
+  check('a phone header keeps the store name off the currency picker',
+    problems.length === 0,
+    problems.join(', ') || 'brand on its own line, controls on the next, name clipped rather than spilled');
+}
+
 /** A storefront page: real header and footer, no unexpanded partial markers. */
 async function page(name, pathname, { navActive = false, drawer = true, jsonLd = false } = {}) {
   const r = await get(pathname);
@@ -889,6 +950,7 @@ async function run(server) {
   checkShippingTotals();
   checkPublishedShippingRates();
   checkFormStatusMessages();
+  checkMobileHeader();
 
   for (const [name, pathname, opts] of [
     ['homepage', '/', { navActive: true, jsonLd: true }],

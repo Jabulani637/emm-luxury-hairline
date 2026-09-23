@@ -310,6 +310,67 @@ body.nav-open .nav-backdrop {
     font-weight: 600;
 }
 
+/* ── Phones ───────────────────────────────────────────────────────────
+   Everything above is sized for a desktop, and the row had no phone rule
+   at all: 32px of side padding, a 64px mark, 24px between every control and
+   a 132px-wide select. Measured at 360px that row needs 467px, so flex
+   squeezed the logo into a 74px column, the words "Emm Luxury Hair" wrapped
+   to three lines, and — with nothing clipping them — ran out to the right,
+   under the select. That is the overlap this block removes.
+
+   The fix is not to shrink the picker further: a brand mark, a full store
+   name and four controls do not share a 360px line at any readable size. So
+   under 640px the header becomes two lines — brand above, controls below,
+   with the country picker at the left of that second line where a shopper
+   looks for "which country am I buying from". components.css keeps the
+   picker from widening the line; see its country-picker section. */
+@media (max-width: 640px) {
+    .header-content {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        padding: 12px 16px;
+        row-gap: 10px;
+    }
+
+    .logo {
+        gap: 10px;
+        font-size: 18px;
+        /* A flex item defaults to min-width: auto — its content width — and
+           that is exactly what refused to shrink here. */
+        min-width: 0;
+    }
+
+    .logo img {
+        height: 40px;
+        width: 40px;
+    }
+
+    /* One line, and if a phone is narrow enough that even this will not fit,
+       an ellipsis rather than words painted over the controls. */
+    .logo span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .header-actions {
+        flex-basis: 100%;
+        gap: 12px;
+        justify-content: space-between;
+    }
+}
+
+/* 320px is the narrowest phone still in use, and the picker plus three icons
+   want 313px between them there — 24px more than the screen has, which let
+   the whole page be dragged sideways. Tighter gaps and a narrower cap on the
+   select (components.css, same width) bring the line back inside. */
+@media (max-width: 380px) {
+    .header-actions {
+        gap: 8px;
+    }
+}
+
 /* Footer */
 footer {
     background: var(--burgundy-dark);

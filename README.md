@@ -123,7 +123,7 @@ A source that is not in that map — the product and collection templates, the
 admin shell — is read as a base and never copied out, which is how a page that
 only works on one host stays off the other.
 
-`npm run smoke` boots the server on port 4399 and runs 63 checks — that
+`npm run smoke` boots the server on port 4399 and runs 64 checks — that
 the committed files in `public/` are fully built and every sitemap URL has a file
 behind it, that each page renders with its chrome and no unexpanded marker, that
 the hamburger, the small-screen nav panel, its CSS and `header-nav.js` still agree
@@ -134,7 +134,9 @@ and `/api/subscribers` still match the table in `supabase/schema.sql`, that the
 the published delivery table still prices each named zone, lets Shopify's own quote
 win, and answers a country no zone names with "no standing price" rather than a
 400, that a `.form-status` box is hidden while empty and revealed by either state
-class (which is how a stored review looked like a dead button), that
+class (which is how a stored review looked like a dead button), that the header
+still gives the store name a line of its own below 640px (which is how it came to
+be printed through the currency picker on a phone), that
 legacy URLs 301 and unknown
 URLs 404, that non-canonical
 hostnames hand over without bouncing `/api` or the admin queue, that `/api/config`
@@ -235,6 +237,24 @@ markers, then run `npm run pages` so the committed copy matches. Do not paste a
 header or footer into a page file, and do not edit a generated file in `public/`.
 An unexpanded marker reaching a browser is a bug, and `npm run smoke` fails if
 one does.
+
+### The header on a phone
+
+The header row is built for a desktop, and all of it — 32px of side padding, the
+64px mark, 24px between controls, a 132px-wide country picker — needs 467px on a
+screen that has 360. Below 640px it therefore becomes two lines: the brand alone
+on the first, every control including the picker on the second, and the store
+name is clipped with an ellipsis if even that line runs out of room. Clipped is
+the point. Left to wrap, the words overflowed their own shrunken column and
+painted straight through the picker, which is what the header looked like before.
+
+The rules sit in two files on purpose — `main.css` lays the row out, and
+`components.css` keeps the picker from widening it, because each file owns its
+own selectors and `components.css` loads second. A `max-width` on the select is
+not enough on its own: a flex item's minimum size comes from its content, and a
+`<select>` measures that against the longest option in its list, so `min-width: 0`
+is what makes the cap real. `npm run smoke` reads both files and fails if either
+half goes missing.
 
 ### Images
 
