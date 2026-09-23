@@ -187,6 +187,18 @@ function renderShippingEstimate(quote, countryName) {
 
   list.innerHTML = '';
 
+  // The published table names Shopify's zones, so a destination outside every
+  // named zone has no price to show — and no refusal either, because Shopify's
+  // International zone has countries nobody has listed for us. Only checkout knows.
+  if (!quote.options || quote.options.length === 0) {
+    title.textContent = `Delivery to ${countryName}`;
+    note.textContent = 'Our published delivery zones do not name this destination, so '
+      + 'there is no standing price to quote. Shopify confirms the exact amount — or '
+      + 'whether the address can be served at all — at checkout.';
+    box.style.display = 'block';
+    return;
+  }
+
   for (const option of quote.options || []) {
     const li = document.createElement('li');
     li.className = 'shipping-estimate-item';

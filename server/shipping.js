@@ -11,7 +11,11 @@
  *
  * Two things follow from that. The lists must be kept in step with the admin by
  * hand — nothing syncs — and this table must never be used when Shopify has
- * quoted for real, because then its number is the one being charged.
+ * quoted for real, because then its number is the one being charged. And a third:
+ * it speaks only for the countries it can show inside a zone. A price invented for
+ * an address the admin has not put in any zone is the difference between a cart
+ * page that says £23.99 and a checkout that says the item cannot be delivered
+ * there, which is how South Africa read.
  */
 
 const CURRENCY = 'GBP';
@@ -47,10 +51,12 @@ const ZONES = [
   {
     id: 'international',
     label: 'International',
-    // Shopify's International zone covers 13 named countries and only three were
-    // supplied, so this zone stands for everything outside the UK and the EU.
-    // Replace `null` with the full list once every one of them is known.
-    countries: null,
+    // Shopify's International zone holds 13 countries and the merchant named
+    // three of them. The row therefore prices these and no others: an unnamed code
+    // may or may not sit in the zone's other ten, and guessing it does is what put
+    // "£23.99 International" on the cart page for South Africa while Shopify's own
+    // checkout told that buyer the product cannot be delivered to them.
+    countries: ['AE', 'AU', 'CA'],
     options: [
       { title: 'Standard international', price: '23.99', eta: '3–5 business days' },
     ],
@@ -58,15 +64,19 @@ const ZONES = [
 ];
 
 function zoneFor(code) {
-  return ZONES.find(z => z.countries && z.countries.includes(code))
-    || ZONES.find(z => z.countries === null);
+  return ZONES.find(z => z.countries.includes(code));
 }
 
 /**
- * What delivery to one country costs, as published. A malformed code gets null
- * because there is nothing to answer; so does ZZ, Shopify's placeholder for "no
- * country yet", which is not a destination anyone is shipping to. A well-formed
- * code beyond those always lands in a zone, the last being the catch-all.
+ * What delivery to one country costs, as published.
+ *
+ * A malformed code and Shopify's "no country yet" placeholder get null, because
+ * there is no destination to answer for. A real code inside a zone gets that zone's
+ * rates. A real code outside every named zone gets `priced: false` with no options:
+ * this table mirrors zones, so it cannot claim a price for an address it cannot show
+ * in a zone, and it must not claim the address is refused either — the ten unnamed
+ * International countries are exactly that unknown, and Shopify's quote at checkout
+ * is the only party that knows.
  */
 function quoteFor(rawCode) {
   if (typeof rawCode !== 'string') return null;
@@ -74,9 +84,14 @@ function quoteFor(rawCode) {
   if (!/^[A-Z]{2}$/.test(code) || code === 'ZZ') return null;
 
   const zone = zoneFor(code);
+  if (!zone) {
+    return { country: code, zone: null, priced: false, options: [] };
+  }
+
   return {
     country: code,
     zone: zone.label,
+    priced: true,
     options: zone.options.map(option => ({
       title: option.title,
       eta: option.eta,

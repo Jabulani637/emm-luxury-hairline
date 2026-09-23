@@ -559,6 +559,8 @@ function checkPublishedShippingRates() {
   const uk = quoteFor('GB');
   const de = quoteFor('DE');
   const au = quoteFor('AU');
+  const za = quoteFor('ZA');
+  const us = quoteFor('US');
 
   if (!uk || uk.options.length !== 2 || priceOf(uk.options[0]) !== '0.00' || !uk.options[0].free
       || priceOf(uk.options[1]) !== '28.00') {
@@ -569,8 +571,18 @@ function checkPublishedShippingRates() {
   }
   const euSize = (ZONES.find(z => z.id === 'eu').countries || []).length;
   if (euSize !== 27) problems.push(`the EU zone lists ${euSize} countries, not 27`);
-  if (!au || priceOf(au.options[0]) !== '23.99') {
-    problems.push('a destination outside the UK and the EU is not priced at £23.99');
+  if (!au || priceOf(au.options[0]) !== '23.99' || au.priced !== true) {
+    problems.push('Australia, a named International country, is not priced at £23.99');
+  }
+  // The measured case behind the rule: Shopify's checkout told a South African
+  // buyer the item cannot be delivered while this table quoted them £23.99,
+  // because a catch-all row stood in for the ten International countries nobody
+  // has named. An unnamed code now earns no price — and still no refusal.
+  for (const [label, quote] of [['South Africa', za], ['the United States', us]]) {
+    if (!quote) problems.push(`${label} got no answer at all`);
+    else if (quote.priced || quote.options.length) {
+      problems.push(`${label} is not in any named zone but was given a published price`);
+    }
   }
   for (const junk of ['ZZ', '', 'DEU', 'G', null, undefined, 42]) {
     if (quoteFor(junk)) problems.push(`${JSON.stringify(junk)} was given a delivery price`);
@@ -590,6 +602,13 @@ function checkPublishedShippingRates() {
   if (!/rates\.length > 0/.test(cartPage)) problems.push('the cart page does not prefer Shopify\'s quote');
   if (!/showPublishedEstimate\(countryCode\)/.test(cartPage)) problems.push('the cart page never falls back to the published price');
   if (!/getShippingRates\(\)/.test(cartPage)) problems.push('the cart page cannot read Shopify\'s delivery options');
+
+  // A destination no published zone names has nothing to list, and the page must
+  // say "no standing price" rather than either inventing one or claiming Shopify
+  // refused the address — ten International zone countries are still unnamed.
+  if (!/quote\.options\.length === 0/.test(cartPage)) problems.push('the cart page has no branch for a destination no zone names');
+  if (!/do not name this destination/.test(cartPage)) problems.push('the unpriced destination says nothing about the zones');
+  if (/cannot be delivered|not available for delivery/.test(cartPage)) problems.push('the cart page claims a refusal the published table cannot know');
 
   for (const id of ['shipping-estimate', 'shipping-estimate-list', 'shipping-estimate-note']) {
     if (!markup.includes(`id="${id}"`)) problems.push(`the cart template has no #${id}`);
@@ -960,6 +979,13 @@ async function run(server) {
   ));
   await json('/api/shipping/quote refuses Shopify\'s "no country"', '/api/shipping/quote?country=ZZ', (s, d) => (
     s === 400 && d && d.error ? true : `status ${s}, ${JSON.stringify(d || {}).slice(0, 120)}`
+  ));
+  // A real country no zone names is a legitimate question with no price to give:
+  // 400 would leave the cart page with its generic failure copy instead.
+  await json('/api/shipping/quote gives no standing price to an unnamed country', '/api/shipping/quote?country=ZA', (s, d) => (
+    s === 200 && d && d.priced === false && d.zone === null
+    && Array.isArray(d.options) && d.options.length === 0
+    ? true : `status ${s}, ${JSON.stringify(d || {}).slice(0, 120)}`
   ));
 }
 

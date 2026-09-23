@@ -123,7 +123,7 @@ A source that is not in that map — the product and collection templates, the
 admin shell — is read as a base and never copied out, which is how a page that
 only works on one host stays off the other.
 
-`npm run smoke` boots the server on port 4399 and runs 61 checks — that
+`npm run smoke` boots the server on port 4399 and runs 62 checks — that
 the committed files in `public/` are fully built and every sitemap URL has a file
 behind it, that each page renders with its chrome and no unexpanded marker, that
 the hamburger, the small-screen nav panel, its CSS and `header-nav.js` still agree
@@ -131,6 +131,9 @@ with each other, that the newsletter box, its confirmation dialog, `newsletter.j
 and `/api/subscribers` still match the table in `supabase/schema.sql`, that the
 `/api/rates` route, `api.js`, `shared.js`, `market.js` and the `.price-approx` and
 `.currency-notice` styles still describe the same two-mode currency display, that
+the published delivery table still prices each named zone, lets Shopify's own quote
+win, and answers a country no zone names with "no standing price" rather than a
+400, that
 legacy URLs 301 and unknown
 URLs 404, that non-canonical
 hostnames hand over without bouncing `/api` or the admin queue, that `/api/config`
@@ -278,7 +281,9 @@ the browser at display time, so a crawler and the merchant's order record both r
 GBP. Measured on the local server on 23 Sep 2026 with the picker on South Africa
 (rate 21.72): `£500.00` printed as `ZAR 10,861` with title *"Charged as £500.00 in
 GBP at checkout."*, the cart line, subtotal and total all three converted, the
-published `£23.99` International estimate showing as `ZAR 521`, and an empty bag's
+published `£23.99` International estimate showing as `ZAR 521` (measured before the
+table was narrowed to the zones it can name, which is what took South Africa out of
+it — see *What delivery costs before checkout*), and an empty bag's
 `£0.00` as `ZAR 0`. With the choice cleared, the same collection grid rendered
 `£400.00` over `≈ $535` and no notice line, and the console stayed empty either way.
 
@@ -310,10 +315,40 @@ the whole mutation, which is how shipping stopped showing anything at all.
 `npm run verify:shopify` quotes a destination, picks the paid rate and changes
 the quantity against the live store; `npm run smoke` guards the wiring statically.
 
-One limit is the Shopify setup, not the code: only a United Kingdom destination
-comes back with rates today, so every other country reads "No shipping rates
-available for this address" until the store's shipping zones and inventory
-locations cover it (Shopify admin → Settings → Shipping and delivery).
+### What delivery costs before checkout
+
+This shop currently quotes **nothing** from Shopify: measured on 23 Sep 2026 against
+a live cart holding a £400 wig, `cart.deliveryGroups.edges` came back empty for the
+United Kingdom, Germany and South Africa alike — 0 groups for all three. That is the
+Markets and shipping-zone repair in the Shopify admin (task #64), and until it is
+done a cart page that only repeated Shopify would show an empty box for every
+address on earth.
+
+So `server/shipping.js` carries the prices the merchant actually published in
+Settings → Shipping and delivery, and `GET /api/shipping/quote?country=DE` answers
+from it. The cart page asks only after Shopify has quoted nothing, so the live quote
+always wins where one exists — that is the money being charged. Two rows of the
+table are copy, not invention:
+
+| Zone | Countries the table names | Price |
+| --- | --- | --- |
+| United Kingdom | GB | Standard free, DHL Express £28 |
+| EU (European Union) | all 27 member states | Standard international £14.99 |
+| International | AE, AU, CA only | Standard international £23.99 |
+
+The third row names three countries because that is all anyone has been told of
+Shopify's 13-country International zone, and the table answers **only** countries it
+can show inside a zone. It used to fall through to International for everything
+else, which is how South Africa got a confident `£23.99 International` on the cart
+page while Shopify's own checkout told the same buyer the item cannot be delivered
+to them. A code outside every zone now gets `priced: false` and no options, and the
+cart page says so plainly: no standing price to quote, checkout confirms the amount
+— or whether the address can be served at all. It is deliberately not a refusal,
+because the ten unnamed zone countries are exactly the unknown.
+
+Nothing here reaches the cart total, and the estimate is never presented as the
+amount due. Keeping it correct means keeping it in step with the admin by hand: to
+cover a country, add its code to a zone; nothing syncs.
 
 ## Orders and enquiries
 
