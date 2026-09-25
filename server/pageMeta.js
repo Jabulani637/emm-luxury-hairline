@@ -183,12 +183,37 @@ function productMeta(product, rating) {
   const schemaDescription = summarise(plain, 300);
 
   // Mirrors the markup and class names product.js builds, so the delivered HTML
-  // opens on the real product name and description instead of "Loading
+  // opens on the real product name, pictures and details instead of "Loading
   // product…". JavaScript replaces this container wholesale, so the two can
-  // never show twice.
-  const bodyHtml = `<div class="product-info">
+  // never show twice — but anything left out here is invisible to a crawler, so
+  // the static copy has to carry the same fields the browser renders.
+  const media = product.media || [];
+  const galleryHtml = media.length
+    ? `<div class="product-gallery">
+        <div class="product-media-main"><img src="${escapeAttr(media[0].url)}" alt="${escapeAttr(media[0].altText || product.title)}"></div>
+        <div class="product-media-thumbs">${media.map((m, i) => `<span class="product-thumb"><img src="${escapeAttr(m.type === 'video' ? (m.poster || m.url) : m.url)}" alt="${i === 0 ? escapeAttr(product.title) : ''}"></span>`).join('')}</div>
+      </div>`
+    : '';
+  const specsHtml = product.specs?.length
+    ? `<dl class="product-specs">${product.specs.map(s => `<div class="product-spec"><dt>${escapeAttr(s.label)}</dt><dd>${escapeAttr(s.value)}</dd></div>`).join('')}</dl>`
+    : '';
+  const categoryHtml = product.productType || product.collections?.length
+    ? `<nav class="product-category" aria-label="Category">${[
+      product.productType ? `<span>${escapeAttr(product.productType)}</span>` : '',
+      ...(product.collections || []).map(c => `<a href="${SITE_URL}/collections/${escapeAttr(c.handle)}">${escapeAttr(c.title)}</a>`),
+    ].filter(Boolean).join('<span class="product-category-sep" aria-hidden="true">·</span>')}</nav>`
+    : '';
+  const notesHtml = (product.notes || []).map(n => n.key === 'sizing_guide'
+    ? `<details class="product-sizing"><summary>${escapeAttr(n.label)}</summary><p>${escapeAttr(n.value)}</p></details>`
+    : `<div class="product-note"><h3>${escapeAttr(n.label)}</h3><p>${escapeAttr(n.value)}</p></div>`).join('');
+
+  const bodyHtml = `${galleryHtml}
+      <div class="product-info">
+        ${categoryHtml}
         <h1>${escapeAttr(product.title)}</h1>
-        ${plain ? `<p class="product-description">${escapeAttr(plain)}</p>` : ''}
+        ${product.descriptionSafe || (plain ? `<p class="product-description">${escapeAttr(plain)}</p>` : '')}
+        ${specsHtml}
+        ${notesHtml}
       </div>`;
 
   return {
@@ -208,6 +233,14 @@ function productMeta(product, rating) {
       brand: { '@type': 'Brand', name: SITE_NAME },
       url: canonical,
       image: images,
+      ...(product.productType ? { category: product.productType } : {}),
+      ...(product.specs?.length ? {
+        additionalProperty: product.specs.map(s => ({
+          '@type': 'PropertyValue',
+          name: s.label,
+          value: s.value,
+        })),
+      } : {}),
       ...(rating ? {
         aggregateRating: {
           '@type': 'AggregateRating',

@@ -104,6 +104,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       imgSrc: ["'self'", 'data:', 'https://cdn.shopify.com'],
+      mediaSrc: ["'self'", 'https://cdn.shopify.com'],
       connectSrc: ["'self'", 'https://api.emmluxuryhair.com'],
       frameAncestors: ["'self'"],
       objectSrc: ["'none'"],

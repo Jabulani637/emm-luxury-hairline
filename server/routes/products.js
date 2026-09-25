@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getProducts } = require('../shopify/queries/getProducts');
 const { getProduct } = require('../shopify/queries/getProduct');
+const { getProductInventory } = require('../shopify/queries/getProductInventory');
 const { pricingCountry } = require('../requestCountry');
 const { serverError } = require('../errorResponse');
 
@@ -42,10 +43,26 @@ router.get('/', async (req, res) => {
 router.get('/:handle', async (req, res) => {
   try {
     const { handle } = req.params;
-    const product = await getProduct(handle, { country: await pricingCountry(req) });
+    const country = await pricingCountry(req);
+
+    // Two calls, not one: stock counts sit behind an access scope the storefront
+    // token may not have, and asking for them in the product query would make
+    // Shopify reject the whole read. null from the second one means the page
+    // shows no scarcity line — availableForSale still came back either way.
+    const [product, inventory] = await Promise.all([
+      getProduct(handle, { country }),
+      getProductInventory(handle, { country }),
+    ]);
 
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
+    }
+
+    if (inventory) {
+      for (const variant of product.variants) {
+        const quantity = inventory[variant.id];
+        if (Number.isFinite(quantity)) variant.quantityAvailable = quantity;
+      }
     }
 
     res.json({ product });

@@ -1,12 +1,22 @@
 /**
- * Product Page JavaScript
- * Handles product loading, variant selection, and add to cart
+ * Product page: what a shopper sees when they open a wig, and what they can
+ * change about it.
+ *
+ * Everything on this page comes from the store. The spec rows, processing time,
+ * sizing guide, category and pictures are read straight from the product, so a
+ * merchant adding a product in Shopify gets a complete page without anyone
+ * editing this file — and a field left empty in the admin leaves no trace here
+ * rather than an empty label.
  */
 
+// Shopify says "in stock" for anything above zero. Below this many, the count is
+// worth telling the shopper about; above it, a number invites questions the
+// store cannot answer (is that the whole stock, or just this warehouse?).
+const SCARCITY_THRESHOLD = 5;
 
 document.addEventListener('DOMContentLoaded', async () => {
   const productPage = document.getElementById('product-page');
-  
+
   if (!productPage) return;
 
   // Get product handle from URL
@@ -19,14 +29,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try {
     const response = await window.productsAPI.getProduct(handle);
-    
+
     if (!response.product) {
       productPage.innerHTML = '<div class="error-message"><p>Product not found.</p></div>';
       return;
     }
 
-    const product = response.product;
-    renderProduct(product);
+    renderProduct(response.product);
   } catch (error) {
     console.error('[Product] Failed to load product:', error);
     productPage.innerHTML = '<div class="error-message"><p>Unable to load this product at this time.</p></div>';
@@ -35,46 +44,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function renderProduct(product) {
   const productPage = document.getElementById('product-page');
-  const images = product.images || [];
+  const media = product.media || [];
   const price = product.priceRange?.minVariantPrice;
-  const compareAtPrice = product.variants?.[0]?.compareAtPrice;
-
-  const imagesHtml = images.length > 0 
-    ? images.map(img => `<img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.altText || product.title)}" loading="lazy">`).join('')
-    : '<div class="no-image">No images available</div>';
-
-  const compareAtPriceHtml = compareAtPrice
-    ? `<span class="compare-at-price">${formatPrice(compareAtPrice.amount, compareAtPrice.currencyCode)}</span>`
-    : '';
-
-  const optionsHtml = (product.options || []).map(option => 
+  const optionsHtml = (product.options || []).map(option =>
     createVariantSelector(option, product.variants)
   ).join('');
 
   productPage.innerHTML = `
     <div class="product-gallery">
-      ${imagesHtml}
+      <div class="product-media-main" id="product-media-main">${renderMedia(mainMedia(product), product.title)}</div>
+      <div class="product-media-thumbs" id="product-media-thumbs">
+        ${media.map((m, i) => renderThumb(m, i, product.title)).join('')}
+      </div>
     </div>
     <div class="product-info">
+      ${renderCategory(product)}
       <h1>${escapeHtml(product.title)}</h1>
       <div class="product-price" id="product-price-display">
-        <span class="current-price">${formatPrice(price.amount, price.currencyCode)}</span>
-        ${compareAtPriceHtml}
+        <span class="current-price">${price ? formatPrice(price.amount, price.currencyCode) : ''}</span>
       </div>
-      <p class="product-description">${escapeHtml(product.description || '')}</p>
-      
-      <div class="hair-quality-info">
-        <h3>Hair Quality Options</h3>
-        <div class="quality-option">
-          <span class="gold">Raw Hair (Exclusive)</span>
-          <span>— Unprocessed, cuticle-aligned, longest lifespan</span>
-        </div>
-        <div class="quality-option">
-          <span class="burgundy">Virgin Hair (Premium)</span>
-          <span>— Chemically unprocessed, exceptional quality</span>
-        </div>
-      </div>
-
+      <p class="product-scarcity" id="product-scarcity" hidden></p>
+      <div class="product-description">${product.descriptionSafe
+    || `<p>${escapeHtml(product.description || '')}</p>`}</div>
+      ${renderSpecs(product.specs)}
+      ${product.specs?.length ? '' : renderQualityNote()}
       <div class="variant-selector">
         ${optionsHtml}
       </div>
@@ -94,25 +87,150 @@ function renderProduct(product) {
         </button>
       </div>
       <p id="product-availability-note" class="product-availability-note"></p>
+      ${renderNotes(product.notes)}
     </div>
   `;
 
+  setupGallery(product);
   setupVariantSelection(product);
   setupQuantityControls();
 }
 
+/* ---------- the pictures ---------- */
+
+/**
+ * The picture a shopper sees for a chosen length or colour. Shopify lets a
+ * merchant attach an image to each variant, so the grid can follow the selection
+ * instead of showing one photo of a product that comes in six.
+ */
+function variantMediaIndex(product, variant) {
+  const url = variant?.image?.url;
+  if (!url) return 0;
+  const base = url.split('?')[0];
+  const found = (product.media || []).findIndex(m => m.url.split('?')[0] === base);
+  return found === -1 ? 0 : found;
+}
+
+function mainMedia(product, index = 0) {
+  const media = product.media || [];
+  return media[index] || media[0] || null;
+}
+
+function renderMedia(item, title) {
+  if (!item) return '<div class="no-image">No images available</div>';
+  if (item.type === 'video') {
+    return `<video src="${escapeHtml(item.url)}" poster="${escapeHtml(item.poster || '')}" controls playsinline preload="metadata" aria-label="${escapeHtml(title)}"></video>`;
+  }
+  return `<img src="${escapeHtml(item.url)}" alt="${escapeHtml(item.altText || title)}">`;
+}
+
+function renderThumb(item, index, title) {
+  const preview = item.type === 'video' ? (item.poster || item.url) : item.url;
+  return `<button type="button" class="product-thumb" data-index="${index}" aria-label="Show ${escapeHtml(item.type === 'video' ? 'video' : `image ${index + 1}`)} of ${escapeHtml(title)}">
+      <img src="${escapeHtml(preview)}" alt="" loading="lazy">
+      ${item.type === 'video' ? '<span class="product-thumb-badge" aria-hidden="true">▶</span>' : ''}
+    </button>`;
+}
+
+function setupGallery(product) {
+  const main = document.getElementById('product-media-main');
+  const thumbs = Array.from(document.querySelectorAll('#product-media-thumbs .product-thumb'));
+  if (!main || !thumbs.length) return;
+
+  // One thumbnail at a time says "this is what you are looking at"; the variant
+  // handlers below call show() with their own picture, so both paths agree.
+  function show(index) {
+    main.innerHTML = renderMedia(mainMedia(product, index), product.title);
+    thumbs.forEach((t, i) => {
+      t.classList.toggle('active', i === index);
+      t.setAttribute('aria-current', i === index ? 'true' : 'false');
+    });
+  }
+
+  thumbs.forEach(thumb => {
+    thumb.addEventListener('click', () => show(parseInt(thumb.dataset.index, 10)));
+  });
+
+  window.productGallery = { show };
+  show(0);
+}
+
+/* ---------- what the store says about the product ---------- */
+
+function renderCategory(product) {
+  const parts = [];
+  if (product.productType) parts.push(`<span>${escapeHtml(product.productType)}</span>`);
+  for (const collection of product.collections || []) {
+    parts.push(`<a href="/collections/${escapeHtml(collection.handle)}">${escapeHtml(collection.title)}</a>`);
+  }
+  if (!parts.length) return '';
+  return `<nav class="product-category" aria-label="Category">${parts.join('<span class="product-category-sep" aria-hidden="true">·</span>')}</nav>`;
+}
+
+/** Label/value rows from the store's metafields: wig type, colour, length, density… */
+function renderSpecs(specs) {
+  if (!specs?.length) return '';
+  return `<dl class="product-specs">
+      ${specs.map(s => `<div class="product-spec"><dt>${escapeHtml(s.label)}</dt><dd>${escapeHtml(s.value)}</dd></div>`).join('')}
+    </dl>`;
+}
+
+/**
+ * The hair-grade explainer. Only for a store that has not described the product
+ * itself: once "Hair Type" is filled in on the product, this would say the same
+ * thing twice and contradict it if the two disagreed.
+ */
+function renderQualityNote() {
+  return `<div class="hair-quality-info">
+      <h3>Hair Quality Options</h3>
+      <div class="quality-option">
+        <span class="gold">Raw Hair (Exclusive)</span>
+        <span>— Unprocessed, cuticle-aligned, longest lifespan</span>
+      </div>
+      <div class="quality-option">
+        <span class="burgundy">Virgin Hair (Premium)</span>
+        <span>— Chemically unprocessed, exceptional quality</span>
+      </div>
+    </div>`;
+}
+
+/** Processing time and the sizing guide: short prose blocks under the buy button. */
+function renderNotes(notes) {
+  if (!notes?.length) return '';
+  return notes.map(note => {
+    const body = `<p>${escapeHtml(note.value).replace(/\n/g, '<br>')}</p>`;
+    if (note.key === 'sizing_guide') {
+      // Long enough to get in the way above the button, short enough not to
+      // deserve its own page — so it opens on click.
+      return `<details class="product-sizing">
+          <summary>${escapeHtml(note.label)}</summary>
+          ${body}
+        </details>`;
+    }
+    return `<div class="product-note">
+        <h3>${escapeHtml(note.label)}</h3>
+        ${body}
+      </div>`;
+  }).join('');
+}
+
+/* ---------- options, price, stock ---------- */
+
 function createVariantSelector(option, variants) {
   const values = option.values || [];
-  
+
   return `
     <div class="variant-option">
       <label>${escapeHtml(option.name)}</label>
       <div class="variant-buttons">
-        ${values.map(value => `
-          <button class="variant-button" data-option="${escapeHtml(option.name)}" data-value="${escapeHtml(value)}">
+        ${values.map(value => {
+    const sample = (variants || []).find(v => v.selectedOptions?.some(o => o.name === option.name && o.value === value));
+    const sold = sample && sample.availableForSale === false;
+    return `
+          <button class="variant-button${sold ? ' sold-out' : ''}" data-option="${escapeHtml(option.name)}" data-value="${escapeHtml(value)}">
             ${escapeHtml(value)}
-          </button>
-        `).join('')}
+          </button>`;
+  }).join('')}
       </div>
     </div>
   `;
@@ -123,7 +241,8 @@ function setupVariantSelection(product) {
   const addToCartBtn = document.getElementById('add-to-cart');
   const soldOutBtn = document.getElementById('sold-out-btn');
   const availabilityNote = document.getElementById('product-availability-note');
-  
+  const scarcity = document.getElementById('product-scarcity');
+
   let selectedOptions = {};
   let selectedVariant = null;
 
@@ -136,18 +255,18 @@ function setupVariantSelection(product) {
 
   selectedVariant = findVariant(product.variants, selectedOptions);
   updateVariantButtons();
+  updatePrice();
   updateAvailability();
+  showVariantMedia();
 
   variantButtons.forEach(button => {
     button.addEventListener('click', () => {
-      const optionName = button.dataset.option;
-      const value = button.dataset.value;
-      
-      selectedOptions[optionName] = value;
+      selectedOptions[button.dataset.option] = button.dataset.value;
       selectedVariant = findVariant(product.variants, selectedOptions);
       updateVariantButtons();
       updatePrice();
       updateAvailability();
+      showVariantMedia();
     });
   });
 
@@ -166,9 +285,9 @@ function setupVariantSelection(product) {
         addToCartBtn.disabled = true;
         const originalText = addToCartBtn.textContent;
         addToCartBtn.textContent = 'Adding...';
-        
+
         await window.cartManager.addToCart(selectedVariant.id, qty);
-        
+
         addToCartBtn.textContent = 'Added ✓';
         addToCartBtn.classList.add('added');
         setTimeout(() => {
@@ -197,24 +316,25 @@ function setupVariantSelection(product) {
       const optionName = button.dataset.option;
       const value = button.dataset.value;
       const isSelected = selectedOptions[optionName] === value;
-      const isQualityOption = optionName.toLowerCase().includes('quality') || 
+      const isQualityOption = optionName.toLowerCase().includes('quality') ||
                            optionName.toLowerCase().includes('hair');
-      
+
       button.classList.toggle('selected', isSelected);
       button.classList.toggle('gold', isSelected && isQualityOption && value.toLowerCase().includes('raw'));
     });
   }
 
   function updatePrice() {
-    if (selectedVariant) {
-      const priceEl = document.querySelector('#product-price-display .current-price');
-      if (priceEl) {
-        priceEl.textContent = formatPrice(
-          selectedVariant.price.amount, 
-          selectedVariant.price.currencyCode
-        );
-      }
-    }
+    const display = document.getElementById('product-price-display');
+    if (!display) return;
+    const price = selectedVariant?.price || product.priceRange?.minVariantPrice;
+    if (!price) return;
+    const compare = selectedVariant?.compareAtPrice;
+
+    display.innerHTML = `<span class="current-price">${formatPrice(price.amount, price.currencyCode)}</span>`
+      + (compare && parseFloat(compare.amount) > parseFloat(price.amount)
+        ? `<span class="compare-at-price">${formatPrice(compare.amount, compare.currencyCode)}</span>`
+        : '');
   }
 
   function updateAvailability() {
@@ -227,6 +347,18 @@ function setupVariantSelection(product) {
         : 'This specific option is out of stock. Request a custom order below.';
       availabilityNote.style.display = available ? 'none' : 'block';
     }
+    if (scarcity) {
+      const left = selectedVariant?.quantityAvailable;
+      const show = available && Number.isFinite(left) && left > 0 && left <= SCARCITY_THRESHOLD;
+      scarcity.textContent = show
+        ? `Hurry, only ${left} ${left === 1 ? 'item' : 'items'} left in stock!`
+        : '';
+      scarcity.hidden = !show;
+    }
+  }
+
+  function showVariantMedia() {
+    if (window.productGallery) window.productGallery.show(variantMediaIndex(product, selectedVariant));
   }
 }
 
@@ -291,11 +423,11 @@ function openCartDrawerIfAvailable() {
 
 function findVariant(variants, selectedOptions) {
   if (!variants) return null;
-  
+
   return variants.find(variant => {
     if (!variant.selectedOptions) return false;
-    
-    return variant.selectedOptions.every(option => 
+
+    return variant.selectedOptions.every(option =>
       selectedOptions[option.name] === option.value
     );
   });
