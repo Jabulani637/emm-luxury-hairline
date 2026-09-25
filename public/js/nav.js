@@ -141,6 +141,9 @@ function renderCartItems() {
             <button class="quantity-decrease" data-line-id="${safeId}" data-qty="${lineItem.quantity}">−</button>
             <span>${lineItem.quantity}</span>
             <button class="quantity-increase" data-line-id="${safeId}" data-qty="${lineItem.quantity}">+</button>
+            <button class="cart-item-remove" type="button" data-line-id="${safeId}" aria-label="Remove ${escapeHtml(product?.title || 'this item')} from your bag" title="Remove from bag">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -163,6 +166,24 @@ function initCartQuantityHandlers() {
   if (!cartItemsContainer) return;
 
   cartItemsContainer.addEventListener('click', async (e) => {
+    const lineBtn = e.target.closest('.cart-item-remove');
+    if (lineBtn) {
+      const removeId = decodeURIComponent(lineBtn.dataset.lineId || '');
+      if (!removeId) return;
+      const pill = lineBtn.closest('.cart-item-quantity');
+      if (pill) pill.querySelectorAll('button').forEach(b => { b.disabled = true; });
+      try {
+        // Takes the whole line out at once: "−" only steps the quantity down,
+        // so six of one item would otherwise need six clicks to get rid of.
+        await window.cartManager.removeItem(removeId);
+      } catch (error) {
+        console.error('[Cart] Failed to remove item:', error);
+        alert('Failed to remove that item. Please try again.');
+        if (pill) pill.querySelectorAll('button').forEach(b => { b.disabled = false; });
+      }
+      return;
+    }
+
     const btn = e.target.closest('.quantity-decrease, .quantity-increase');
     if (!btn) return;
 

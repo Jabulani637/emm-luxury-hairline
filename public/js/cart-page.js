@@ -366,6 +366,9 @@ function renderCartPage() {
             <button class="quantity-decrease" data-line-id="${safeId}" data-qty="${lineItem.quantity}">−</button>
             <span>${lineItem.quantity}</span>
             <button class="quantity-increase" data-line-id="${safeId}" data-qty="${lineItem.quantity}">+</button>
+            <button class="cart-item-remove" type="button" data-line-id="${safeId}" aria-label="Remove ${escapeHtml(product?.title || 'this item')} from your bag" title="Remove from bag">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -392,6 +395,22 @@ function initCartPageQuantityHandlers() {
   cartPageQtyHandlerAttached = true;
 
   section.addEventListener('click', async (e) => {
+    const removeBtn = e.target.closest('.cart-item-remove');
+    if (removeBtn) {
+      const removeId = decodeURIComponent(removeBtn.dataset.lineId || '');
+      if (!removeId) return;
+      const pill = removeBtn.closest('.cart-item-quantity');
+      if (pill) pill.querySelectorAll('button').forEach(b => { b.disabled = true; });
+      try {
+        await window.cartManager.removeItem(removeId);
+      } catch (err) {
+        console.error('[CartPage] Failed to remove item:', err);
+        alert('Failed to remove that item. Please try again.');
+        if (pill) pill.querySelectorAll('button').forEach(b => { b.disabled = false; });
+      }
+      return;
+    }
+
     const btn = e.target.closest('.quantity-decrease, .quantity-increase');
     if (!btn) return;
 

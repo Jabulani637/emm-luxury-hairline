@@ -971,6 +971,22 @@ body:has(.signup-modal[open]) {
     padding: 0 4px;
 }
 
+.cart-item-quantity .cart-item-remove {
+    margin-left: 4px;
+    width: 34px;
+    border-left: 1px solid var(--border-subtle);
+    color: var(--ink-muted);
+}
+
+.cart-item-quantity .cart-item-remove:hover {
+    color: var(--burgundy);
+}
+
+.cart-item-quantity .cart-item-remove:disabled {
+    color: var(--border-subtle);
+    cursor: default;
+}
+
 /* Footer: totals + checkout */
 .cart-footer {
     padding: 16px 24px 24px;
